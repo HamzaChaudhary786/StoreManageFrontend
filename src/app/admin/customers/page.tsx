@@ -32,6 +32,7 @@ export default function CustomersPage() {
   const [payNote, setPayNote] = useState('');
   const [showHistoryModal, setShowHistoryModal] = useState<{show: boolean, customer?: any}>({show: false});
   const [customerHistory, setCustomerHistory] = useState<any>(null);
+  const [productSearch, setProductSearch] = useState('');
 
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', address: '' });
   const [udharForm, setUdharForm] = useState({ 
@@ -320,7 +321,7 @@ export default function CustomersPage() {
                 <h2 className="text-xl font-black tracking-tight">Add Udhar Entry</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">For: <span className="text-foreground font-bold">{showUdharModal.customer?.name}</span></p>
               </div>
-              <button onClick={() => setShowUdharModal({show: false})} className="p-2 hover:bg-muted rounded-xl text-muted-foreground">
+              <button onClick={() => { setShowUdharModal({show: false}); setProductSearch(''); }} className="p-2 hover:bg-muted rounded-xl text-muted-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -331,21 +332,34 @@ export default function CustomersPage() {
                   <div className="grid grid-cols-5 gap-3">
                     <div className="col-span-3 space-y-1.5">
                       <label className={labelCls}>Product</label>
-                      <select className={inputCls} value={item.productId}
-                        onChange={e => {
-                          const prod = products.find(p => p.id === e.target.value);
-                          const newItems = [...udharForm.items];
-                          newItems[idx] = { 
-                            ...newItems[idx], 
-                            productId: e.target.value, 
-                            priceAtTime: prod?.salePrice || 0,
-                            unit: prod?.unit || 'pcs'
-                          };
-                          setUdharForm({...udharForm, items: newItems});
-                        }} required>
-                        <option value="">Select...</option>
-                        {products.map(p => <option key={p.id} value={p.id}>{p.name} — Rs. {p.salePrice} / {p.unit}</option>)}
-                      </select>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                          <input 
+                            type="text" 
+                            placeholder="Filter products..." 
+                            className="w-full bg-background border border-border/50 rounded-xl pl-9 pr-4 py-2 outline-none focus:ring-1 focus:ring-primary text-xs mb-2"
+                            value={productSearch}
+                            onChange={(e) => setProductSearch(e.target.value)}
+                          />
+                          <select className={inputCls} value={item.productId}
+                            onChange={e => {
+                              const prod = products.find(p => p.id === e.target.value);
+                              const newItems = [...udharForm.items];
+                              newItems[idx] = { 
+                                ...newItems[idx], 
+                                productId: e.target.value, 
+                                priceAtTime: prod?.salePrice || 0,
+                                unit: prod?.unit || 'pcs'
+                              };
+                              setUdharForm({...udharForm, items: newItems});
+                            }} required>
+                            <option value="">Select...</option>
+                            {products
+                              .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.sku?.toLowerCase().includes(productSearch.toLowerCase()))
+                              .map(p => <option key={p.id} value={p.id}>{p.name} — Rs. {p.salePrice} / {p.unit}</option>)
+                            }
+                          </select>
+                        </div>
                     </div>
                     <div className="space-y-1.5">
                       <label className={labelCls}>Qty ({udharForm.items[idx]?.unit || 'pcs'})</label>
