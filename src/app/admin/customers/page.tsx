@@ -423,26 +423,63 @@ export default function CustomersPage() {
               </button>
             </div>
             <div className="max-h-[60vh] overflow-y-auto divide-y divide-border/30">
-              {customerHistory.paymentLogs?.length === 0 && (
-                <div className="py-16 text-center">
-                  <p className="text-muted-foreground font-medium text-sm">No payments recorded yet.</p>
-                </div>
-              )}
-              {customerHistory.paymentLogs?.map((log: any) => (
-                <div key={log.id} className="flex items-center justify-between p-5 hover:bg-muted/10 transition-all">
-                  <div>
-                    <p className="font-bold text-sm text-emerald-400">+Rs. {log.amount.toFixed(2)}</p>
-                    <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                      {new Date(log.createdAt).toLocaleDateString('en-PK', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-                      {' · '}{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                    {log.note && <p className="text-[11px] text-muted-foreground italic mt-1">"{log.note}"</p>}
+              {/* Transactions Section */}
+              <div className="bg-muted/5 p-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Udhar Transactions</p>
+                {customerHistory.udharTransactions?.length === 0 && (
+                  <p className="text-center py-4 text-xs text-muted-foreground">No transactions found.</p>
+                )}
+                {customerHistory.udharTransactions?.map((tx: any) => (
+                  <div key={tx.id} className="mb-4 last:mb-0 p-4 bg-background border border-border/50 rounded-2xl">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-rose-400">
+                          {tx.items?.map((i: any) => i.product?.name).join(', ') || tx.description || 'Udhar Purchase'}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
+                          {new Date(tx.createdAt).toLocaleDateString('en-PK', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {' · '}{new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <p className="font-black text-sm text-rose-400">Rs. {tx.totalAmount.toFixed(0)}</p>
+                    </div>
+                    {tx.items?.length > 0 && (
+                      <div className="space-y-1 pt-2 border-t border-border/20">
+                        {tx.items.map((i: any, idx: number) => (
+                          <p key={idx} className="text-[11px] text-muted-foreground flex justify-between">
+                            <span>{i.product?.name} x {i.quantity} {i.unit || 'pcs'}</span>
+                            <span>Rs. {(i.quantity * i.priceAtTime).toFixed(0)}</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {tx.description && <p className="text-[11px] text-muted-foreground italic mt-2 border-t border-border/20 pt-2">Note: {tx.description}</p>}
                   </div>
-                  <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                ))}
+              </div>
+
+              {/* Payments Section */}
+              <div className="p-4 border-t border-border/50">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Payment Logs</p>
+                {customerHistory.paymentLogs?.length === 0 && (
+                  <p className="text-center py-4 text-xs text-muted-foreground">No payments recorded yet.</p>
+                )}
+                {customerHistory.paymentLogs?.map((log: any) => (
+                  <div key={log.id} className="flex items-center justify-between p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl mb-3 last:mb-0">
+                    <div>
+                      <p className="font-bold text-sm text-emerald-400">+Rs. {log.amount.toFixed(0)}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
+                        {new Date(log.createdAt).toLocaleDateString('en-PK', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        {' · '}{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {log.note && <p className="text-[11px] text-muted-foreground italic mt-1">"{log.note}"</p>}
+                    </div>
+                    <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
             <div className="p-4 border-t border-border/50 bg-muted/10">
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Paid</p>
