@@ -30,7 +30,7 @@ export default function LoginPage() {
     setError('');
     try {
       const res = await api.post('/auth/login', { email, password });
-      setAuth(res.data.user, res.data.accessToken);
+      setAuth(res.data.admin, res.data.token);
       router.push('/admin');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please check credentials.');
