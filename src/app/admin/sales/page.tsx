@@ -346,7 +346,7 @@ export default function SalesPage() {
             display: 'grid',
             gridTemplateColumns: '1fr 380px',
             gap: '20px',
-            height: 'calc(100vh - 120px)',
+            height: 'calc(100vh)',
           }}
           className="fade-up"
         >
@@ -367,7 +367,7 @@ export default function SalesPage() {
               <input
                 type="text"
                 placeholder="Search products by name or SKU…"
-                className="search-bar syne"
+                className="search-bar"
                 style={{
                   width: '100%', borderRadius: '16px',
                   padding: '14px 18px 14px 48px',
@@ -419,7 +419,7 @@ export default function SalesPage() {
                     {/* In-cart badge */}
                     {inCart && (
                       <div
-                        className="in-cart-badge syne"
+                        className="in-cart-badge"
                         style={{
                           position: 'absolute', top: 0, right: 0,
                           padding: '3px 10px',
@@ -445,22 +445,15 @@ export default function SalesPage() {
                       {/* Name & category */}
                     <div>
                       <p
-                        className="syne"
-                        style={{
-                          fontSize: '13px', fontWeight: 700,
-                          color: '#fff', lineHeight: 1.3,
-                          display: '-webkit-box', WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                          marginBottom: '4px',
-                        }}
+                        style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}
                       >
                         {p.name}
                       </p>
                       <span
                         className="pill-muted"
                         style={{
-                          fontSize: '9px', fontWeight: 700,
-                          letterSpacing: '0.08em', textTransform: 'uppercase',
+                          fontSize: '11px', fontWeight: 600,
+                          textTransform: 'uppercase',
                           padding: '2px 7px', borderRadius: '20px',
                         }}
                       >
@@ -478,16 +471,14 @@ export default function SalesPage() {
                       }}
                     >
                       <p
-                        className="syne"
-                        style={{ fontSize: '15px', fontWeight: 800, color: '#fbbf24' }}
+                        style={{ fontSize: '16px', fontWeight: 700, color: '#fbbf24' }}
                       >
                         ₨{p.salePrice}
                       </p>
                       <span
                         className={p.stock <= 5 ? 'pill-rose' : 'pill-muted'}
                         style={{
-                          fontSize: '9px', fontWeight: 700,
-                          letterSpacing: '0.05em',
+                          fontSize: '11px', fontWeight: 600,
                           padding: '2px 7px', borderRadius: '20px',
                         }}
                       >
@@ -508,8 +499,8 @@ export default function SalesPage() {
                           background: 'rgba(245,158,11,0.1)',
                           border: '1px solid rgba(245,158,11,0.2)',
                           color: '#fbbf24',
-                          fontSize: '10px', fontWeight: 800,
-                          letterSpacing: '0.1em', textTransform: 'uppercase',
+                          fontSize: '12px', fontWeight: 700,
+                          textTransform: 'uppercase',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                         }}
@@ -546,7 +537,7 @@ export default function SalesPage() {
                         </button>
                         <span
                           className="syne"
-                          style={{ flex: 1, textAlign: 'center', fontSize: '11px', fontWeight: 800, color: '#fbbf24' }}
+                          style={{ flex: 1, textAlign: 'center', fontSize: '14px', fontWeight: 700, color: '#fbbf24' }}
                         >
                           {cartItem.quantity}
                         </span>
@@ -584,7 +575,7 @@ export default function SalesPage() {
                   >
                     <ShoppingBag style={{ width: '24px', height: '24px' }} />
                   </div>
-                  <p className="syne" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '14px', fontWeight: 600 }}>
+                  <p className="syne" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '15px', fontWeight: 500 }}>
                     No products found
                   </p>
                 </div>
@@ -808,8 +799,8 @@ export default function SalesPage() {
                           </button>
                         </div>
                         <span
-                          className="pill-amber syne"
-                          style={{ fontSize: '10px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px' }}
+                          className="pill-amber"
+                          style={{ fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '20px' }}
                         >
                           {item.quantity} {item.unit}
                         </span>
@@ -833,36 +824,36 @@ export default function SalesPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <button
                   onClick={() => setIsUdhar(false)}
-                  className={`pay-toggle syne ${!isUdhar ? 'active-cash' : ''}`}
+                  className={`pay-toggle ${!isUdhar ? 'active-cash' : ''}`}
                   style={{
                     padding: '10px 8px', borderRadius: '14px', cursor: 'pointer',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
                   }}
                 >
                   <Banknote style={{ width: '16px', height: '16px' }} />
-                  <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Cash Sale</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>Cash Sale</span>
                 </button>
                 <button
                   onClick={() => setIsUdhar(true)}
-                  className={`pay-toggle syne ${isUdhar ? 'active-udhar' : ''}`}
+                  className={`pay-toggle ${isUdhar ? 'active-udhar' : ''}`}
                   style={{
                     padding: '10px 8px', borderRadius: '14px', cursor: 'pointer',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
                   }}
                 >
                   <CreditCard style={{ width: '16px', height: '16px' }} />
-                  <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Udhar Entry</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>Udhar Entry</span>
                 </button>
               </div>
 
               {/* Customer select (Udhar) */}
               {isUdhar && (
                 <div style={{ animation: 'fadeUp 0.2s ease' }}>
-                  <p className="syne" style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '6px' }}>
+                  <p className="syne" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: '6px' }}>
                     Select Customer
                   </p>
                   <select
-                    className="cust-select syne"
+                    className="cust-select"
                     style={{ width: '100%', borderRadius: '14px', padding: '11px 14px', fontSize: '13px', fontWeight: 600 }}
                     value={selectedCustomerId}
                     onChange={e => setSelectedCustomerId(e.target.value)}
@@ -887,7 +878,7 @@ export default function SalesPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Tag style={{ width: '14px', height: '14px', color: 'rgba(255,255,255,0.3)' }} />
                   <div>
-                    <p className="syne" style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
+                    <p className="syne" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
                       Discount (₨)
                     </p>
                     <input
@@ -898,7 +889,7 @@ export default function SalesPage() {
                       className="syne"
                       style={{
                         background: 'transparent', border: 'none', outline: 'none',
-                        fontSize: '14px', fontWeight: 800,
+                        fontSize: '16px', fontWeight: 700,
                         color: '#fcd34d', width: '80px', marginTop: '1px',
                       }}
                       value={discount || ''}
@@ -907,7 +898,7 @@ export default function SalesPage() {
                   </div>
                 </div>
                 {discount > 0 && (
-                  <span className="pill-amber syne" style={{ fontSize: '10px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px' }}>
+                  <span className="pill-amber" style={{ fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '20px' }}>
                     −₨{discount.toFixed(0)}
                   </span>
                 )}
@@ -921,7 +912,7 @@ export default function SalesPage() {
                 }}
               >
                 <div>
-                  <p className="syne" style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '4px' }}>
+                  <p className="syne" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>
                     Total Amount
                   </p>
                   {discount > 0 && (
@@ -929,15 +920,15 @@ export default function SalesPage() {
                       ₨{subtotal.toFixed(0)}
                     </p>
                   )}
-                  <p className={`syne ${isUdhar ? 'total-amount-rose' : 'total-amount'}`} style={{ fontSize: '32px', fontWeight: 800, lineHeight: 1 }}>
+                  <p className={`${isUdhar ? 'total-amount-rose' : 'total-amount'}`} style={{ fontSize: '36px', fontWeight: 700, lineHeight: 1 }}>
                     ₨{total.toFixed(0)}
                   </p>
                 </div>
                 <div style={{ textAlign: 'right', marginBottom: '4px' }}>
-                  <p className="syne" style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '4px' }}>
+                  <p className="syne" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>
                     Items
                   </p>
-                  <p className="syne" style={{ fontSize: '20px', fontWeight: 800, color: 'rgba(255,255,255,0.7)' }}>
+                  <p className="syne" style={{ fontSize: '22px', fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
                     {cart.reduce((acc, i) => acc + i.quantity, 0).toFixed(1)}
                   </p>
                 </div>
@@ -947,12 +938,12 @@ export default function SalesPage() {
               <button
                 disabled={loading || cart.length === 0}
                 onClick={handleCheckout}
-                className={`syne ${isUdhar ? 'btn-rose' : 'btn-amber'}`}
+                className={`${isUdhar ? 'btn-rose' : 'btn-amber'}`}
                 style={{
-                  width: '100%', padding: '15px',
+                  width: '100%', padding: '16px',
                   borderRadius: '16px', border: 'none', cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
-                  fontSize: '12px', fontWeight: 800,
-                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  fontSize: '14px', fontWeight: 700,
+                  textTransform: 'uppercase',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                   opacity: cart.length === 0 ? 0.4 : 1,
                 }}
