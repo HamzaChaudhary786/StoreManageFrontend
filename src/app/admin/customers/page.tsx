@@ -24,26 +24,61 @@ import {
   Edit2
 } from 'lucide-react';
 
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  address?: string;
+  currentBalance: number;
+  updatedAt: string;
+  createdAt: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  sku?: string;
+  salePrice: number;
+  unit: string;
+}
+
+interface UdharItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  priceAtTime: number;
+  unit: string;
+}
+
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [showUdharModal, setShowUdharModal] = useState<{show: boolean, customer?: any}>({show: false});
-  const [showPayModal, setShowPayModal] = useState<{show: boolean, customer?: any}>({show: false});
+  const [showUdharModal, setShowUdharModal] = useState<{show: boolean, customer?: Customer}>({show: false});
+  const [showPayModal, setShowPayModal] = useState<{show: boolean, customer?: Customer}>({show: false});
   const [search, setSearch] = useState('');
   const [payAmount, setPayAmount] = useState('');
   const [payNote, setPayNote] = useState('');
-  const [showHistoryModal, setShowHistoryModal] = useState<{show: boolean, customer?: any}>({show: false});
+  const [showHistoryModal, setShowHistoryModal] = useState<{show: boolean, customer?: Customer}>({show: false});
   const [customerHistory, setCustomerHistory] = useState<any>(null);
   const [productSearch, setProductSearch] = useState('');
-  const [showDeleteModal, setShowDeleteModal] = useState<{show: boolean, customer?: any}>({show: false});
+  const [activePickingIdx, setActivePickingIdx] = useState<number | null>(null);
+
+  const getUnitDisplay = (unit: string, name: string = '') => {
+    const u = unit?.toLowerCase() || '';
+    const n = name?.toLowerCase() || '';
+    if (['kg', 'g', 'gram'].some(k => u.includes(k)) || n.includes('rice')) return 'kg';
+    if (['ltr', 'litre', 'ml', 'bottle'].some(k => u.includes(k)) || n.includes('oil') || n.includes('milk')) return 'ltr';
+    return 'pcs';
+  };
+  const [showDeleteModal, setShowDeleteModal] = useState<{show: boolean, customer?: Customer}>({show: false});
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', address: '' });
   const [udharForm, setUdharForm] = useState({ 
-    items: [{ productId: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }],
+    items: [{ productId: '', name: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }] as UdharItem[],
     description: ''
   });
 
@@ -94,7 +129,7 @@ export default function CustomersPage() {
   const handleAddUdhar = async (e: React.FormEvent) => {
     e.preventDefault();
     const promise = api.post('/customers/transaction', {
-      customerId: showUdharModal.customer.id,
+      customerId: showUdharModal.customer?.id,
       items: udharForm.items, description: udharForm.description
     });
     
@@ -103,7 +138,7 @@ export default function CustomersPage() {
       success: () => {
         setShowUdharModal({show: false}); 
         fetchData();
-        setUdharForm({ items: [{ productId: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }], description: '' });
+        setUdharForm({ items: [{ productId: '', name: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }], description: '' });
         return "Udhar entry added successfully";
       },
       error: (err) => err.response?.data?.message || "Failed to add udhar entry"
@@ -113,7 +148,7 @@ export default function CustomersPage() {
   const handleMarkPaid = async (e: React.FormEvent) => {
     e.preventDefault();
     const promise = api.post('/customers/pay', {
-      customerId: showPayModal.customer.id,
+      customerId: showPayModal.customer?.id,
       amount: parseFloat(payAmount),
       note: payNote
     });
@@ -138,7 +173,9 @@ export default function CustomersPage() {
       loading: 'Processing payment...',
       success: () => {
         // Refresh customer history
-        api.get(`/customers/${showHistoryModal.customer.id}`).then(res => setCustomerHistory(res.data));
+        if (showHistoryModal.customer?.id) {
+          api.get(`/customers/${showHistoryModal.customer.id}`).then(res => setCustomerHistory(res.data));
+        }
         fetchData(); // Refresh main list balance
         return "Transaction marked as paid!";
       },
@@ -154,7 +191,9 @@ export default function CustomersPage() {
       loading: 'Reverting transaction...',
       success: () => {
         // Refresh customer history
-        api.get(`/customers/${showHistoryModal.customer.id}`).then(res => setCustomerHistory(res.data));
+        if (showHistoryModal.customer?.id) {
+          api.get(`/customers/${showHistoryModal.customer.id}`).then(res => setCustomerHistory(res.data));
+        }
         fetchData();
         return "Transaction reverted successfully!";
       },
@@ -167,7 +206,7 @@ export default function CustomersPage() {
       return toast.error("Customer name does not match!");
     }
 
-    const promise = api.delete(`/customers/${showDeleteModal.customer.id}`);
+    const promise = api.delete(`/customers/${showDeleteModal.customer?.id}`);
     toast.promise(promise, {
       loading: 'Deleting customer...',
       success: () => {
@@ -184,7 +223,7 @@ export default function CustomersPage() {
     c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search)
   );
 
-  const totalOutstanding = customers.reduce((acc, c) => acc + c.currentBalance, 0);
+  const totalOutstanding = customers.reduce((acc, c) => acc + (c.currentBalance || 0), 0);
 
   const inputCls = "w-full bg-background border border-border/50 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary text-sm font-medium transition-all";
   const labelCls = "text-[10px] font-black uppercase tracking-widest text-muted-foreground";
@@ -293,8 +332,8 @@ export default function CustomersPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Outstanding Balance</p>
-                    <p className={`text-2xl font-black ${customer.currentBalance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                      Rs. {customer.currentBalance.toFixed(0)}
+                    <p className={`text-2xl font-black ${(customer.currentBalance || 0) > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      Rs. {(customer.currentBalance || 0).toFixed(0)}
                     </p>
                   </div>
                   {customer.currentBalance === 0 ? (
@@ -427,7 +466,7 @@ export default function CustomersPage() {
                 <h2 className="text-xl font-black tracking-tight">Add Udhar Entry</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">For: <span className="text-foreground font-bold">{showUdharModal.customer?.name}</span></p>
               </div>
-              <button onClick={() => { setShowUdharModal({show: false}); setProductSearch(''); }} className="p-2 hover:bg-muted rounded-xl text-muted-foreground">
+              <button onClick={() => { setShowUdharModal({show: false}); setProductSearch(''); setActivePickingIdx(null); }} className="p-2 hover:bg-muted rounded-xl text-muted-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -438,37 +477,86 @@ export default function CustomersPage() {
                   <div className="grid grid-cols-5 gap-3">
                     <div className="col-span-3 space-y-1.5">
                       <label className={labelCls}>Product</label>
+                      <div className="relative group">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <input 
                             type="text" 
-                            placeholder="Filter products..." 
-                            className="w-full bg-background border border-border/50 rounded-xl pl-9 pr-4 py-2 outline-none focus:ring-1 focus:ring-primary text-xs mb-2"
-                            value={productSearch}
-                            onChange={(e) => setProductSearch(e.target.value)}
-                          />
-                          <select className={inputCls} value={item.productId}
-                            onChange={e => {
-                              const prod = products.find(p => p.id === e.target.value);
+                            placeholder="Search & select product..." 
+                            className={`${inputCls} pl-11 focus:ring-primary/50`}
+                            value={item.productId ? products.find(p => p.id === item.productId)?.name || '' : (activePickingIdx === idx ? productSearch : '')}
+                            onChange={(e) => {
+                              setProductSearch(e.target.value);
                               const newItems = [...udharForm.items];
-                              newItems[idx] = { 
-                                ...newItems[idx], 
-                                productId: e.target.value, 
-                                priceAtTime: prod?.salePrice || 0,
-                                unit: prod?.unit || 'pcs'
-                              };
+                              newItems[idx].productId = ''; // Reset ID on type
                               setUdharForm({...udharForm, items: newItems});
-                            }} required>
-                            <option value="">Select...</option>
+                              setActivePickingIdx(idx);
+                            }}
+                            onFocus={() => setActivePickingIdx(idx)}
+                          />
+                          {item.productId && (
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const newItems = [...udharForm.items];
+                                newItems[idx].productId = '';
+                                newItems[idx].name = '';
+                                setUdharForm({...udharForm, items: newItems});
+                                setProductSearch('');
+                              }}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded-lg text-muted-foreground"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+
+                        {activePickingIdx === idx && !item.productId && productSearch.length > 0 && (
+                          <div className="absolute top-full left-0 w-full mt-2 bg-card border border-border/50 rounded-2xl shadow-2xl z-[110] max-h-[250px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
                             {products
                               .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.sku?.toLowerCase().includes(productSearch.toLowerCase()))
-                              .map(p => <option key={p.id} value={p.id}>{p.name} — Rs. {p.salePrice} / {p.unit}</option>)
+                              .map(p => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const newItems = [...udharForm.items];
+                                    newItems[idx] = { 
+                                      ...newItems[idx], 
+                                      productId: p.id, 
+                                      priceAtTime: p.salePrice || 0,
+                                      unit: p.unit || 'pcs',
+                                      name: p.name
+                                    };
+                                    setUdharForm({...udharForm, items: newItems});
+                                    setProductSearch('');
+                                    setActivePickingIdx(null);
+                                  }}
+                                  className="w-full text-left p-4 hover:bg-primary/5 flex justify-between items-center border-b border-border/10 last:border-0"
+                                >
+                                  <div>
+                                    <p className="text-sm font-bold text-foreground">{p.name}</p>
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{p.sku || 'No SKU'}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm font-black text-primary">Rs. {p.salePrice}</p>
+                                    <p className="text-[10px] text-muted-foreground uppercase">{p.unit}</p>
+                                  </div>
+                                </button>
+                              ))
                             }
-                          </select>
-                        </div>
+                            {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+                              <div className="p-8 text-center text-muted-foreground">
+                                <Package className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                <p className="text-xs font-bold">No products found</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className={labelCls}>Qty ({udharForm.items[idx]?.unit || 'pcs'})</label>
+                      <label className={labelCls}>Qty ({getUnitDisplay(item.unit, item.name)})</label>
                       <input type="number" step="0.01" className={inputCls} value={item.quantity}
                         onChange={e => {
                           const newItems = [...udharForm.items];
@@ -487,7 +575,7 @@ export default function CustomersPage() {
               ))}
               
               <button type="button"
-                onClick={() => setUdharForm({...udharForm, items: [...udharForm.items, { productId: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }]})}
+                onClick={() => setUdharForm({...udharForm, items: [...udharForm.items, { productId: '', name: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }]})}
                 className="w-full py-3 border border-dashed border-primary/30 rounded-2xl text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all"
               >
                 + Add Another Item
