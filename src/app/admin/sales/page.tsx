@@ -31,6 +31,7 @@ export default function SalesPage() {
   const [isUdhar, setIsUdhar] = useState(false);
   const [loading, setLoading] = useState(false);
   const [discount, setDiscount] = useState(0);
+  const [paidAmount, setPaidAmount] = useState(0);
 
   const fetchData = async () => {
     try {
@@ -54,7 +55,7 @@ export default function SalesPage() {
     if (existing) {
       setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
     } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
+      setCart([...cart, { ...product, quantity: 1, mode: 'qty' }]);
     }
   };
 
@@ -62,9 +63,13 @@ export default function SalesPage() {
     setCart(cart.filter(item => item.id !== id));
   };
 
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = (id: string, quantity: number, raw?: string) => {
     if (quantity <= 0) return removeFromCart(id);
-    setCart(cart.map(item => item.id === id ? { ...item, quantity } : item));
+    setCart(cart.map(item => item.id === id ? { ...item, quantity, rawQty: raw } : item));
+  };
+
+  const toggleMode = (id: string) => {
+    setCart(cart.map(item => item.id === id ? { ...item, mode: item.mode === 'qty' ? 'price' : 'qty', rawQty: '' } : item));
   };
 
   const subtotal = cart.reduce((acc, item) => acc + (item.salePrice * item.quantity), 0);
@@ -84,7 +89,8 @@ export default function SalesPage() {
             quantity: item.quantity,
             priceAtTime: item.salePrice
           })),
-          description: `POS Udhar Sale: ${cart.map(i => i.name).join(', ')}`
+          description: `POS Udhar Sale: ${cart.map(i => i.name).join(', ')}`,
+          paidAmount: paidAmount
         });
       } else {
         await api.post('/orders', {
@@ -101,6 +107,7 @@ export default function SalesPage() {
       setSelectedCustomerId('');
       setIsUdhar(false);
       setDiscount(0);
+      setPaidAmount(0);
       fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to record sale");
@@ -780,18 +787,45 @@ export default function SalesPage() {
                           >
                             <Minus style={{ width: '12px', height: '12px' }} />
                           </button>
-                          <input
-                            type="number"
-                            step={isWeight ? '0.01' : '1'}
-                            className="syne"
-                            style={{
-                              width: '52px', textAlign: 'center', background: 'transparent',
-                              border: 'none', outline: 'none', fontSize: '12px', fontWeight: 800,
-                              color: '#fbbf24',
-                            }}
-                            value={item.quantity}
-                            onChange={e => updateQuantity(item.id, parseFloat(e.target.value))}
-                          />
+                          <div className="flex flex-col items-center">
+                            <div className="flex bg-white/5 rounded-lg p-0.5 mb-1 scale-75">
+                              <button 
+                                onClick={() => toggleMode(item.id)}
+                                className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase transition-all ${item.mode === 'qty' ? 'bg-amber-500 text-black' : 'text-white/40'}`}
+                              >Qty</button>
+                              <button 
+                                onClick={() => toggleMode(item.id)}
+                                className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase transition-all ${item.mode === 'price' ? 'bg-amber-500 text-black' : 'text-white/40'}`}
+                              >Price</button>
+                            </div>
+                            <input
+                              type="text"
+                              className="syne"
+                              style={{
+                                width: '60px', textAlign: 'center', background: 'transparent',
+                                border: 'none', outline: 'none', fontSize: '12px', fontWeight: 800,
+                                color: '#fbbf24',
+                              }}
+                              value={item.rawQty !== undefined ? item.rawQty : item.quantity}
+                              placeholder={item.mode === 'price' ? "Rs" : "Qty"}
+                              onChange={e => {
+                                const val = e.target.value;
+                                const num = parseFloat(val);
+                                if (item.mode === 'price') {
+                                  if (!isNaN(num)) updateQuantity(item.id, num / item.salePrice, val);
+                                  else updateQuantity(item.id, 0, val);
+                                } else {
+                                  if (!isNaN(num)) updateQuantity(item.id, num, val);
+                                  else updateQuantity(item.id, 0, val);
+                                }
+                              }}
+                            />
+                            {item.mode === 'price' && (
+                              <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
+                                {item.quantity.toFixed(2)} {item.unit}
+                              </span>
+                            )}
+                          </div>
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity + (isWeight ? 0.1 : 1))}
                             className="stepper-btn"
@@ -899,12 +933,44 @@ export default function SalesPage() {
                     />
                   </div>
                 </div>
-                {discount > 0 && (
-                  <span className="pill-amber" style={{ fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '20px' }}>
-                    −₨{discount.toFixed(0)}
-                  </span>
-                )}
               </div>
+
+              {isUdhar && (
+                <div 
+                  className="fade-up"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    background: 'rgba(244,63,94,0.08)',
+                    border: '1px solid rgba(244,63,94,0.3)',
+                    borderRadius: '14px', padding: '10px 14px',
+                  }}
+                >
+                  <div>
+                    <p className="syne" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(244,63,94,0.7)' }}>
+                      Amount Paid Now (₨)
+                    </p>
+                    <input
+                      type="number"
+                      className="syne"
+                      style={{
+                        background: 'transparent', border: 'none', outline: 'none',
+                        fontSize: '16px', fontWeight: 700,
+                        color: '#fff', width: '100px', marginTop: '1px',
+                      }}
+                      value={paidAmount}
+                      onChange={e => setPaidAmount(parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p className="syne" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(244,63,94,0.7)' }}>
+                      Remaining Udhar
+                    </p>
+                    <p style={{ fontSize: '16px', fontWeight: 800, color: '#fb7185' }}>
+                      ₨{(total - paidAmount).toFixed(0)}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Total */}
               <div

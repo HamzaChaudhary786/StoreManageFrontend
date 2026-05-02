@@ -46,8 +46,10 @@ interface UdharItem {
   productId: string;
   name: string;
   quantity: number;
+  rawQty?: string;
   priceAtTime: number;
   unit: string;
+  mode: 'qty' | 'price'; // Explicit mode selection
 }
 
 export default function CustomersPage() {
@@ -78,9 +80,40 @@ export default function CustomersPage() {
 
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', address: '' });
   const [udharForm, setUdharForm] = useState({ 
-    items: [{ productId: '', name: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }] as UdharItem[],
-    description: ''
+    items: [{ productId: '', name: '', quantity: 1, rawQty: '1', priceAtTime: 0, unit: 'pcs', mode: 'qty' }] as UdharItem[],
+    description: '',
+    paidAmount: 0
   });
+
+  const parseSmartQuantity = (input: string, unitPrice: number): number | null => {
+    const str = input.toLowerCase().trim();
+    if (!str) return null;
+
+    // 1. Price Based (e.g., "200 rs", "rs 200", "200 rupees")
+    const priceMatch = str.match(/^(\d+(\.\d+)?)\s*(rs|rupees|rp|rupaye)$/) || str.match(/^(rs|rupees)\s*(\d+(\.\d+)?)$/);
+    if (priceMatch) {
+      const amount = parseFloat(priceMatch[1] || priceMatch[2]);
+      return unitPrice > 0 ? amount / unitPrice : 0;
+    }
+
+    // 2. Local Fraction Names
+    if (str === 'half kg' || str === 'half kilo' || str === 'aadha kilo' || str === 'aadha' || str === 'half') return 0.5;
+    if (str === 'quarter' || str === 'quarter kg' || str === 'pao' || str === 'paa') return 0.25;
+    if (str === 'three quarter' || str === 'pauna' || str === 'pona') return 0.75;
+    if (str === 'sawa kg' || str === 'sawa') return 1.25;
+    if (str === 'dedh kg' || str === 'dedh') return 1.5;
+    if (str === 'dhayi kg' || str === 'dhayi' || str === 'adhai') return 2.5;
+
+    // 3. Weight Units (Metric)
+    const gramMatch = str.match(/^(\d+(\.\d+)?)\s*(g|gram|grams)$/);
+    if (gramMatch) return parseFloat(gramMatch[1]) / 1000;
+
+    const kgMatch = str.match(/^(\d+(\.\d+)?)\s*(kg|kilo|kilos|kgm)$/);
+    if (kgMatch) return parseFloat(kgMatch[1]);
+
+    const num = parseFloat(str);
+    return isNaN(num) ? null : num;
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -130,7 +163,9 @@ export default function CustomersPage() {
     e.preventDefault();
     const promise = api.post('/customers/transaction', {
       customerId: showUdharModal.customer?.id,
-      items: udharForm.items, description: udharForm.description
+      items: udharForm.items.filter(i => i.productId),
+      description: udharForm.description,
+      paidAmount: udharForm.paidAmount
     });
     
     toast.promise(promise, {
@@ -138,7 +173,7 @@ export default function CustomersPage() {
       success: () => {
         setShowUdharModal({show: false}); 
         fetchData();
-        setUdharForm({ items: [{ productId: '', name: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }], description: '' });
+        setUdharForm({ items: [{ productId: '', name: '', quantity: 1, rawQty: '1', priceAtTime: 0, unit: 'pcs', mode: 'qty' }], description: '', paidAmount: 0 });
         return "Udhar entry added successfully";
       },
       error: (err) => err.response?.data?.message || "Failed to add udhar entry"
@@ -526,7 +561,10 @@ export default function CustomersPage() {
                                       productId: p.id, 
                                       priceAtTime: p.salePrice || 0,
                                       unit: p.unit || 'pcs',
-                                      name: p.name
+                                      name: p.name,
+                                      rawQty: '1',
+                                      quantity: 1,
+                                      mode: 'qty'
                                     };
                                     setUdharForm({...udharForm, items: newItems});
                                     setProductSearch('');
@@ -555,14 +593,56 @@ export default function CustomersPage() {
                         )}
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className={labelCls}>Qty ({getUnitDisplay(item.unit, item.name)})</label>
-                      <input type="number" step="0.01" className={inputCls} value={item.quantity}
+                    <div className="col-span-2 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className={labelCls}>{item.mode === 'price' ? 'Total Price (Rs)' : `Qty (${getUnitDisplay(item.unit, item.name)})`}</label>
+                        <div className="flex bg-muted rounded-lg p-0.5 scale-90 origin-right">
+                          <button type="button" 
+                            onClick={() => {
+                              const newItems = [...udharForm.items];
+                              newItems[idx].mode = 'qty';
+                              setUdharForm({...udharForm, items: newItems});
+                            }}
+                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase transition-all ${item.mode === 'qty' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                          >Qty</button>
+                          <button type="button" 
+                            onClick={() => {
+                              const newItems = [...udharForm.items];
+                              newItems[idx].mode = 'price';
+                              setUdharForm({...udharForm, items: newItems});
+                            }}
+                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase transition-all ${item.mode === 'price' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                          >Price</button>
+                        </div>
+                      </div>
+                      <input 
+                        type="text" 
+                        className={inputCls} 
+                        value={item.rawQty || item.quantity.toString()}
+                        placeholder={item.mode === 'price' ? "e.g. 100" : "e.g. 1.5"}
                         onChange={e => {
+                          const val = e.target.value;
+                          const numVal = parseFloat(val);
                           const newItems = [...udharForm.items];
-                          newItems[idx].quantity = parseFloat(e.target.value);
+                          newItems[idx].rawQty = val;
+                          
+                          if (!isNaN(numVal)) {
+                            if (item.mode === 'price') {
+                              newItems[idx].quantity = item.priceAtTime > 0 ? numVal / item.priceAtTime : 0;
+                            } else {
+                              const smart = parseSmartQuantity(val, item.priceAtTime);
+                              if (smart !== null) newItems[idx].quantity = smart;
+                            }
+                          }
                           setUdharForm({...udharForm, items: newItems});
-                        }} required />
+                        }} 
+                        required 
+                      />
+                      {item.mode === 'price' && (
+                        <p className="text-[9px] font-bold text-primary mt-1 px-1">
+                          Calculated: {item.quantity.toFixed(3)} {getUnitDisplay(item.unit, item.name)}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <label className={labelCls}>Subtotal</label>
@@ -575,13 +655,33 @@ export default function CustomersPage() {
               ))}
               
               <button type="button"
-                onClick={() => setUdharForm({...udharForm, items: [...udharForm.items, { productId: '', name: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }]})}
+                onClick={() => setUdharForm({...udharForm, items: [...udharForm.items, { productId: '', name: '', quantity: 1, rawQty: '1', priceAtTime: 0, unit: 'pcs', mode: 'qty' }]})}
                 className="w-full py-3 border border-dashed border-primary/30 rounded-2xl text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all"
               >
                 + Add Another Item
               </button>
 
-              <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-muted/30 rounded-2xl border border-white/5">
+                <div className="space-y-1.5">
+                  <label className={labelCls}>Amount Paid Now (Rs)</label>
+                  <input 
+                    type="number" 
+                    className={inputCls}
+                    value={udharForm.paidAmount}
+                    onChange={e => setUdharForm({...udharForm, paidAmount: parseFloat(e.target.value) || 0})}
+                    placeholder="0"
+                  />
+                  <p className="text-[10px] text-muted-foreground px-1">Any upfront payment</p>
+                </div>
+                <div className="flex flex-col justify-center items-end pr-2">
+                  <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Remaining Udhar</span>
+                  <span className="text-xl font-black text-primary">
+                    ₨{(udharForm.items.reduce((acc, i) => acc + (i.quantity * i.priceAtTime), 0) - udharForm.paidAmount).toFixed(0)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 mt-4">
                 <label className={labelCls}>Note (Optional)</label>
                 <textarea className={inputCls} placeholder="Description..." rows={2}
                   value={udharForm.description} onChange={e => setUdharForm({...udharForm, description: e.target.value})} />

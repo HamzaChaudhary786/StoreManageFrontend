@@ -25,12 +25,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('Failed to fetch notifications', e);
+    }
+  };
 
   useEffect(() => {
     if (hydrated && (!user || user.role !== 'ADMIN')) {
       router.push('/login');
     }
+    if (user) fetchNotifications();
   }, [user, router, hydrated]);
+
+  const markRead = async (id: string) => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications/${id}/read`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      fetchNotifications();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   if (!hydrated || !user) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -50,6 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   const isActive = (item: any) => item.exact ? pathname === item.href : pathname.startsWith(item.href);
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -146,10 +174,67 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="relative p-2.5 hover:bg-muted rounded-xl text-muted-foreground transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-background" />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+                className={`relative p-2.5 rounded-xl transition-all ${showNotifDropdown ? 'bg-primary text-white shadow-lg' : 'hover:bg-muted text-muted-foreground'}`}
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-2 right-2 w-4 h-4 bg-rose-500 text-[9px] font-black text-white flex items-center justify-center rounded-full border-2 border-background animate-bounce">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowNotifDropdown(false)} />
+                  <div className="absolute right-0 mt-3 w-80 max-h-[480px] bg-background border border-border/40 rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-4 border-b border-border/40 bg-muted/30 flex items-center justify-between">
+                      <span className="text-sm font-black uppercase tracking-widest text-foreground">Notifications</span>
+                      {unreadCount > 0 && <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{unreadCount} New</span>}
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center">
+                          <Bell className="w-8 h-8 text-muted-foreground/20 mx-auto mb-3" />
+                          <p className="text-xs font-bold text-muted-foreground">No notifications yet</p>
+                        </div>
+                      ) : (
+                        notifications.map((n) => (
+                          <div 
+                            key={n.id} 
+                            onClick={() => !n.isRead && markRead(n.id)}
+                            className={`p-4 border-b border-border/10 cursor-pointer transition-colors hover:bg-muted/30 ${!n.isRead ? 'bg-primary/5' : ''}`}
+                          >
+                            <div className="flex gap-3">
+                              <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                                n.type === 'LOW_STOCK' ? 'bg-rose-500/10 text-rose-500' : 'bg-primary/10 text-primary'
+                              }`}>
+                                {n.type === 'LOW_STOCK' ? <Package className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm ${!n.isRead ? 'font-black' : 'font-bold'} text-foreground`}>{n.title}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">{n.message}</p>
+                                <p className="text-[10px] font-bold text-muted-foreground/40 mt-2 flex items-center gap-1.5 uppercase tracking-tighter">
+                                  {new Date(n.createdAt).toLocaleDateString()} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  {!n.isRead && <span className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <div className="p-3 bg-muted/20 border-t border-border/40 text-center">
+                      <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">View All Notifications</button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
             <div className="w-px h-6 bg-border" />
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 gradient-primary rounded-xl flex items-center justify-center font-black text-white text-xs">
