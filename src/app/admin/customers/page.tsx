@@ -20,7 +20,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Package,
-  Trash2
+  Trash2,
+  Edit2
 } from 'lucide-react';
 
 export default function CustomersPage() {
@@ -38,6 +39,7 @@ export default function CustomersPage() {
   const [productSearch, setProductSearch] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState<{show: boolean, customer?: any}>({show: false});
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', address: '' });
   const [udharForm, setUdharForm] = useState({ 
@@ -62,16 +64,20 @@ export default function CustomersPage() {
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    const promise = api.post('/customers', customerForm);
+    const promise = editingId 
+      ? api.patch(`/customers/${editingId}`, customerForm)
+      : api.post('/customers', customerForm);
+
     toast.promise(promise, {
-      loading: 'Creating customer...',
+      loading: editingId ? 'Updating customer...' : 'Creating customer...',
       success: () => {
         setShowCustomerModal(false); 
-        fetchData();
+        setEditingId(null);
         setCustomerForm({ name: '', phone: '', address: '' });
-        return "Customer created successfully";
+        fetchData();
+        return editingId ? "Customer updated successfully" : "Customer created successfully";
       },
-      error: (err) => err.response?.data?.message || "Failed to create customer"
+      error: (err) => err.response?.data?.message || "Failed to process request"
     });
   };
 
@@ -261,12 +267,24 @@ export default function CustomersPage() {
                     <Calendar className="w-3 h-3" />
                     {new Date(customer.updatedAt).toLocaleDateString('en-PK')}
                   </span>
-                  <button 
-                    onClick={() => setShowDeleteModal({show: true, customer})}
-                    className="p-2 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-400 transition-all rounded-xl ml-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center ml-2">
+                    <button 
+                      onClick={() => {
+                        setEditingId(customer.id);
+                        setCustomerForm({ name: customer.name, phone: customer.phone, address: customer.address || '' });
+                        setShowCustomerModal(true);
+                      }}
+                      className="p-2 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all rounded-xl"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => setShowDeleteModal({show: true, customer})}
+                      className="p-2 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-400 transition-all rounded-xl"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -327,12 +345,14 @@ export default function CustomersPage() {
       {showCustomerModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
           <div className="bg-card border border-border/50 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-border/50 flex justify-between items-center">
+            <div className="p-6 border-b border-border/50 flex justify-between items-center bg-primary/5">
               <div>
-                <h2 className="text-xl font-black tracking-tight">New Customer</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Add a new Udhar customer.</p>
+                <h2 className="text-xl font-black tracking-tight">{editingId ? 'Edit Customer' : 'New Customer'}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {editingId ? 'Update customer details.' : 'Add a new Udhar customer.'}
+                </p>
               </div>
-              <button onClick={() => setShowCustomerModal(false)} className="p-2 hover:bg-muted rounded-xl text-muted-foreground">
+              <button onClick={() => { setShowCustomerModal(false); setEditingId(null); setCustomerForm({ name: '', phone: '', address: '' }); }} className="p-2 hover:bg-muted rounded-xl text-muted-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -353,7 +373,7 @@ export default function CustomersPage() {
                   onChange={e => setCustomerForm({...customerForm, address: e.target.value})} />
               </div>
               <button className="w-full gradient-primary text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:opacity-90 transition-all glow-primary">
-                Create Customer
+                {editingId ? 'Update Customer' : 'Create Customer'}
               </button>
             </form>
           </div>

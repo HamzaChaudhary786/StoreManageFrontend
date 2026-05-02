@@ -395,7 +395,7 @@ export default function SalesPage() {
               {filteredProducts.map((p, i) => {
                 const cartItem = cart.find(item => item.id === p.id);
                 const inCart = !!cartItem;
-                const isWeight = ['kg', 'liter', 'gram'].includes(p.unit);
+                const isWeight = ['kg', 'liter', 'gram', 'bottle', 'litre'].includes(p.unit);
 
                 return (
                   <div
@@ -539,7 +539,7 @@ export default function SalesPage() {
                           className="syne"
                           style={{ flex: 1, textAlign: 'center', fontSize: '14px', fontWeight: 700, color: '#fbbf24' }}
                         >
-                          {cartItem.quantity}
+                          {cartItem.quantity} {p.unit}
                         </span>
                         <button
                           onClick={() => addToCart(p)}
@@ -676,7 +676,7 @@ export default function SalesPage() {
                 </div>
               ) : (
                 cart.map(item => {
-                  const isWeight = ['kg', 'liter', 'gram'].includes(item.unit);
+                  const isWeight = ['kg', 'liter', 'gram', 'bottle', 'litre'].includes(item.unit);
 
                   return (
                     <div key={item.id} className="cart-item" style={{ borderRadius: '18px', padding: '14px' }}>
@@ -740,7 +740,9 @@ export default function SalesPage() {
                               className="qty-chip syne"
                               style={{ padding: '3px 8px', borderRadius: '8px', fontSize: '9px', fontWeight: 800, letterSpacing: '0.05em' }}
                             >
-                              {v >= 1 ? `${v}kg` : `${v * 1000}g`}
+                              {item.unit === 'bottle' || item.unit === 'liter' || item.unit === 'litre'
+                                ? `${v}ltr`
+                                : v >= 1 ? `${v}kg` : `${v * 1000}g`}
                             </button>
                           ))
                           : [1, 2, 5, 10, 12, 24].map(v => (
@@ -750,7 +752,7 @@ export default function SalesPage() {
                               className="qty-chip syne"
                               style={{ padding: '3px 8px', borderRadius: '8px', fontSize: '9px', fontWeight: 800, letterSpacing: '0.05em' }}
                             >
-                              {v} {item.unit === 'packet' ? 'pkt' : 'pcs'}
+                              {v} {item.unit === 'packet' ? 'pkt' : item.unit === 'bottle' ? 'btl' : 'pcs'}
                             </button>
                           ))
                         }
