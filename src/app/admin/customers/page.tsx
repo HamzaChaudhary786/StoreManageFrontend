@@ -17,7 +17,8 @@ import {
   TrendingDown,
   Users,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Package
 } from 'lucide-react';
 
 export default function CustomersPage() {
@@ -94,6 +95,20 @@ export default function CustomersPage() {
       });
       setShowPayModal({show: false}); setPayAmount(''); setPayNote(''); fetchData();
     } catch (err) { alert("Failed to record payment"); }
+  };
+
+  const handlePaySpecificTransaction = async (tx: any) => {
+    if (!confirm(`Mark transaction of Rs. ${tx.totalAmount} as paid?`)) return;
+    try {
+      await api.post(`/customers/pay-transaction/${tx.id}`);
+      alert("Transaction marked as paid!");
+      // Refresh customer history
+      const res = await api.get(`/customers/${showHistoryModal.customer.id}`);
+      setCustomerHistory(res.data);
+      fetchData(); // Refresh main list balance
+    } catch (err) {
+      alert("Failed to process payment");
+    }
   };
 
   const filteredCustomers = customers.filter(c => 
@@ -430,26 +445,43 @@ export default function CustomersPage() {
                   <p className="text-center py-4 text-xs text-muted-foreground">No transactions found.</p>
                 )}
                 {customerHistory.udharTransactions?.map((tx: any) => (
-                  <div key={tx.id} className="mb-4 last:mb-0 p-4 bg-background border border-border/50 rounded-2xl">
+                  <div key={tx.id} className={`mb-4 last:mb-0 p-4 bg-background border rounded-2xl ${tx.isPaid ? 'border-emerald-500/20' : 'border-border/50'}`}>
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
-                        <p className="font-bold text-sm text-rose-400">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg ${tx.isPaid ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                            {tx.isPaid ? 'Paid' : 'Unpaid'}
+                          </span>
+                          <p className="text-[10px] text-muted-foreground font-medium">
+                            {new Date(tx.createdAt).toLocaleDateString('en-PK', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          </p>
+                        </div>
+                        <p className="font-bold text-sm text-foreground">
                           {tx.items?.map((i: any) => i.product?.name).join(', ') || tx.description || 'Udhar Purchase'}
                         </p>
-                        <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                          {new Date(tx.createdAt).toLocaleDateString('en-PK', { year: 'numeric', month: 'short', day: 'numeric' })}
-                          {' · '}{new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
                       </div>
-                      <p className="font-black text-sm text-rose-400">Rs. {tx.totalAmount.toFixed(0)}</p>
+                      <div className="text-right">
+                        <p className={`font-black text-sm ${tx.isPaid ? 'text-emerald-400' : 'text-rose-400'}`}>Rs. {tx.totalAmount.toFixed(0)}</p>
+                        {!tx.isPaid && (
+                          <button 
+                            onClick={() => handlePaySpecificTransaction(tx)}
+                            className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 mt-2 transition-colors"
+                          >
+                            Mark Paid
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {tx.items?.length > 0 && (
-                      <div className="space-y-1 pt-2 border-t border-border/20">
+                      <div className="space-y-1.5 pt-3 border-t border-border/20 mt-3">
                         {tx.items.map((i: any, idx: number) => (
-                          <p key={idx} className="text-[11px] text-muted-foreground flex justify-between">
-                            <span>{i.product?.name} x {i.quantity} {i.unit || 'pcs'}</span>
-                            <span>Rs. {(i.quantity * i.priceAtTime).toFixed(0)}</span>
-                          </p>
+                          <div key={idx} className="text-[11px] text-muted-foreground flex justify-between items-center bg-muted/5 p-2 rounded-xl">
+                            <div className="flex items-center gap-2">
+                              <Package className="w-3 h-3 text-primary/50" />
+                              <span className="font-bold text-foreground/80">{i.product?.name}</span>
+                            </div>
+                            <span>{i.quantity} {i.product?.unit || 'pcs'} × Rs. {i.priceAtTime} = <span className="font-bold text-foreground/70">Rs. {(i.quantity * i.priceAtTime).toFixed(0)}</span></span>
+                          </div>
                         ))}
                       </div>
                     )}

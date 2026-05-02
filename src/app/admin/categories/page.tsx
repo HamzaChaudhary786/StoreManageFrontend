@@ -24,6 +24,8 @@ export default function CategoriesPage() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
   const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -44,12 +46,35 @@ export default function CategoriesPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/categories', formData);
+      if (isEditing && editingId) {
+        await api.patch(`/categories/${editingId}`, formData);
+      } else {
+        await api.post('/categories', formData);
+      }
       setShowModal(false);
       fetchData();
       setFormData({ name: '', description: '' });
+      setIsEditing(false);
+      setEditingId(null);
     } catch (err) {
-      alert("Failed to create category");
+      alert(isEditing ? "Failed to update category" : "Failed to create category");
+    }
+  };
+
+  const handleEdit = (cat: any) => {
+    setFormData({ name: cat.name, description: cat.description || '' });
+    setEditingId(cat.id);
+    setIsEditing(true);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this category? Products within it will prevent deletion.")) return;
+    try {
+      await api.delete(`/categories/${id}`);
+      fetchData();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to delete category");
     }
   };
 
@@ -114,7 +139,11 @@ export default function CategoriesPage() {
           <p className="text-sm text-muted-foreground mt-0.5">Organize your products into logical departments.</p>
         </div>
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setIsEditing(false);
+            setFormData({ name: '', description: '' });
+            setShowModal(true);
+          }}
           className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm text-white gradient-primary glow-primary hover:opacity-90 transition-all"
         >
           <Plus className="w-4 h-4" />
@@ -165,8 +194,18 @@ export default function CategoriesPage() {
                     <Layers className="w-5 h-5" />
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-2 hover:bg-muted rounded-xl text-muted-foreground transition-colors"><Edit2 className="w-4 h-4" /></button>
-                    <button className="p-2 hover:bg-rose-500/10 rounded-xl text-rose-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                    <button 
+                      onClick={() => handleEdit(cat)}
+                      className="p-2 hover:bg-muted rounded-xl text-muted-foreground transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(cat.id)}
+                      className="p-2 hover:bg-rose-500/10 rounded-xl text-rose-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
                 
@@ -207,10 +246,17 @@ export default function CategoriesPage() {
           <div className="bg-card border border-border/50 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-border/50 flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-black tracking-tight">New Category</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Create a new product department.</p>
+                <h2 className="text-xl font-black tracking-tight">{isEditing ? 'Edit Category' : 'New Category'}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{isEditing ? 'Update department details.' : 'Create a new product department.'}</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-muted rounded-xl text-muted-foreground">
+              <button 
+                onClick={() => {
+                  setShowModal(false);
+                  setIsEditing(false);
+                  setEditingId(null);
+                }} 
+                className="p-2 hover:bg-muted rounded-xl text-muted-foreground"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -235,7 +281,7 @@ export default function CategoriesPage() {
                 />
               </div>
               <button className="w-full gradient-primary text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:opacity-90 transition-all glow-primary">
-                Create Category
+                {isEditing ? 'Update Category' : 'Create Category'}
               </button>
             </form>
           </div>

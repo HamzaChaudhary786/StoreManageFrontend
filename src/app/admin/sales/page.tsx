@@ -83,7 +83,7 @@ export default function SalesPage() {
             quantity: item.quantity,
             priceAtTime: item.salePrice
           })),
-          description: 'POS Udhar Sale'
+          description: `POS Udhar Sale: ${cart.map(i => i.name).join(', ')}`
         });
       } else {
         await api.post('/orders', {
