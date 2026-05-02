@@ -19,7 +19,8 @@ import {
   Users,
   AlertCircle,
   CheckCircle2,
-  Package
+  Package,
+  Trash2
 } from 'lucide-react';
 
 export default function CustomersPage() {
@@ -35,6 +36,8 @@ export default function CustomersPage() {
   const [showHistoryModal, setShowHistoryModal] = useState<{show: boolean, customer?: any}>({show: false});
   const [customerHistory, setCustomerHistory] = useState<any>(null);
   const [productSearch, setProductSearch] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState<{show: boolean, customer?: any}>({show: false});
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
 
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', address: '' });
   const [udharForm, setUdharForm] = useState({ 
@@ -137,6 +140,40 @@ export default function CustomersPage() {
     });
   };
 
+  const handleRevertTransaction = async (tx: any) => {
+    if (!confirm(`Are you sure you want to revert this transaction? Stock will be restored and balance will be reduced by Rs. ${tx.totalAmount}.`)) return;
+    
+    const promise = api.delete(`/customers/transaction/${tx.id}`);
+    toast.promise(promise, {
+      loading: 'Reverting transaction...',
+      success: () => {
+        // Refresh customer history
+        api.get(`/customers/${showHistoryModal.customer.id}`).then(res => setCustomerHistory(res.data));
+        fetchData();
+        return "Transaction reverted successfully!";
+      },
+      error: (err: any) => err.response?.data?.message || "Failed to revert transaction"
+    });
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (deleteConfirmName !== showDeleteModal.customer?.name) {
+      return toast.error("Customer name does not match!");
+    }
+
+    const promise = api.delete(`/customers/${showDeleteModal.customer.id}`);
+    toast.promise(promise, {
+      loading: 'Deleting customer...',
+      success: () => {
+        setShowDeleteModal({show: false});
+        setDeleteConfirmName('');
+        fetchData();
+        return "Customer deleted successfully";
+      },
+      error: (err: any) => err.response?.data?.message || "Failed to delete customer"
+    });
+  };
+
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search)
   );
@@ -219,10 +256,18 @@ export default function CustomersPage() {
                     )}
                   </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-xl bg-muted text-muted-foreground flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {new Date(customer.updatedAt).toLocaleDateString('en-PK')}
-                </span>
+                <div className="flex items-center">
+                  <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-xl bg-muted text-muted-foreground flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(customer.updatedAt).toLocaleDateString('en-PK')}
+                  </span>
+                  <button 
+                    onClick={() => setShowDeleteModal({show: true, customer})}
+                    className="p-2 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-400 transition-all rounded-xl ml-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Balance */}
@@ -486,16 +531,24 @@ export default function CustomersPage() {
                           {tx.items?.map((i: any) => i.product?.name).join(', ') || tx.description || 'Udhar Purchase'}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex flex-col items-end gap-1">
                         <p className={`font-black text-sm ${tx.isPaid ? 'text-emerald-400' : 'text-rose-400'}`}>Rs. {tx.totalAmount.toFixed(0)}</p>
-                        {!tx.isPaid && (
+                        <div className="flex items-center gap-3">
+                          {!tx.isPaid && (
+                            <button 
+                              onClick={() => handlePaySpecificTransaction(tx)}
+                              className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 transition-colors"
+                            >
+                              Mark Paid
+                            </button>
+                          )}
                           <button 
-                            onClick={() => handlePaySpecificTransaction(tx)}
-                            className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 mt-2 transition-colors"
+                            onClick={() => handleRevertTransaction(tx)}
+                            className="text-[10px] font-black uppercase tracking-widest text-rose-400 hover:text-rose-300 transition-colors"
                           >
-                            Mark Paid
+                            Revert / Return
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
                     {tx.items?.length > 0 && (
@@ -544,6 +597,42 @@ export default function CustomersPage() {
               <p className="text-lg font-black text-emerald-400">
                 Rs. {(customerHistory.paymentLogs?.reduce((s: number, l: any) => s + l.amount, 0) || 0).toFixed(2)}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal.show && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-card border border-rose-500/30 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-border/50 flex justify-between items-center bg-rose-500/5">
+              <div>
+                <h2 className="text-xl font-black tracking-tight text-rose-400">Delete Customer?</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">This action is irreversible and will delete all their history.</p>
+              </div>
+              <button onClick={() => { setShowDeleteModal({show: false}); setDeleteConfirmName(''); }} className="p-2 hover:bg-muted rounded-xl text-muted-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
+                <p className="text-xs font-bold text-rose-300">To confirm, please type the customer name: <span className="text-white font-black">{showDeleteModal.customer?.name}</span></p>
+              </div>
+              <input 
+                type="text" 
+                className={inputCls} 
+                placeholder="Enter customer name..." 
+                value={deleteConfirmName} 
+                onChange={e => setDeleteConfirmName(e.target.value)} 
+              />
+              <button 
+                onClick={handleDeleteCustomer}
+                disabled={deleteConfirmName !== showDeleteModal.customer?.name}
+                className="w-full py-4 rounded-2xl font-black text-sm text-white uppercase tracking-widest transition-all glow-rose disabled:opacity-50 disabled:grayscale"
+                style={{background: 'linear-gradient(135deg, oklch(0.62 0.22 25), oklch(0.60 0.22 350))'}}
+              >
+                Permanently Delete
+              </button>
             </div>
           </div>
         </div>

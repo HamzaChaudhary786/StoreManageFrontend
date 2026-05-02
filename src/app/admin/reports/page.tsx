@@ -89,6 +89,23 @@ export default function ReportsPage() {
     }
   };
 
+  const handleReturn = async (sale: any) => {
+    if (!confirm(`Are you sure you want to return this ${sale.type} sale? This will restore stock and ${sale.type === 'UDHAR' ? 'revert customer balance' : 'delete the record'}.`)) return;
+    
+    const promise = sale.type === 'UDHAR' 
+      ? api.delete(`/customers/transaction/${sale.id}`)
+      : api.delete(`/orders/${sale.id}`);
+
+    toast.promise(promise, {
+      loading: 'Reverting sale...',
+      success: () => {
+        fetchSalesData();
+        return "Sale returned successfully! Stock restored.";
+      },
+      error: (err: any) => err.response?.data?.message || "Failed to return sale"
+    });
+  };
+
   const filteredSales = salesData.filter(sale => 
     sale.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
     sale.items.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -249,8 +266,16 @@ export default function ReportsPage() {
                     <td className="px-6 py-5 text-right">
                       <span className="text-sm font-bold text-emerald-500">₨ {sale.profit.toLocaleString()}</span>
                     </td>
-                    <td className="px-6 py-5 text-right">
-                      <span className="text-sm font-black text-primary">₨ {sale.total.toLocaleString()}</span>
+                    <td className="px-6 py-5 text-right flex items-center justify-end gap-3">
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm font-black text-primary">₨ {sale.total.toLocaleString()}</span>
+                        <button 
+                          onClick={() => handleReturn(sale)}
+                          className="text-[9px] font-black uppercase tracking-widest text-rose-400 hover:text-rose-300 transition-colors mt-1"
+                        >
+                          Return / Revert
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
