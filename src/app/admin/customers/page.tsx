@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { 
   Plus, 
@@ -58,11 +59,17 @@ export default function CustomersPage() {
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await api.post('/customers', customerForm);
-      setShowCustomerModal(false); fetchData();
-      setCustomerForm({ name: '', phone: '', address: '' });
-    } catch (err) { alert("Failed to create customer"); }
+    const promise = api.post('/customers', customerForm);
+    toast.promise(promise, {
+      loading: 'Creating customer...',
+      success: () => {
+        setShowCustomerModal(false); 
+        fetchData();
+        setCustomerForm({ name: '', phone: '', address: '' });
+        return "Customer created successfully";
+      },
+      error: (err) => err.response?.data?.message || "Failed to create customer"
+    });
   };
 
   const loadCustomerHistory = async (customer: any) => {
@@ -70,45 +77,64 @@ export default function CustomersPage() {
       const res = await api.get(`/customers/${customer.id}`);
       setCustomerHistory(res.data);
       setShowHistoryModal({ show: true, customer });
-    } catch { alert("Failed to load payment history"); }
+    } catch { 
+      toast.error("Failed to load payment history"); 
+    }
   };
 
   const handleAddUdhar = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await api.post('/customers/transaction', {
-        customerId: showUdharModal.customer.id,
-        items: udharForm.items, description: udharForm.description
-      });
-      setShowUdharModal({show: false}); fetchData();
-      setUdharForm({ items: [{ productId: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }], description: '' });
-    } catch (err) { alert("Failed to add udhar entry"); }
+    const promise = api.post('/customers/transaction', {
+      customerId: showUdharModal.customer.id,
+      items: udharForm.items, description: udharForm.description
+    });
+    
+    toast.promise(promise, {
+      loading: 'Adding udhar entry...',
+      success: () => {
+        setShowUdharModal({show: false}); 
+        fetchData();
+        setUdharForm({ items: [{ productId: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }], description: '' });
+        return "Udhar entry added successfully";
+      },
+      error: (err) => err.response?.data?.message || "Failed to add udhar entry"
+    });
   };
 
   const handleMarkPaid = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await api.post('/customers/pay', {
-        customerId: showPayModal.customer.id,
-        amount: parseFloat(payAmount),
-        note: payNote
-      });
-      setShowPayModal({show: false}); setPayAmount(''); setPayNote(''); fetchData();
-    } catch (err) { alert("Failed to record payment"); }
+    const promise = api.post('/customers/pay', {
+      customerId: showPayModal.customer.id,
+      amount: parseFloat(payAmount),
+      note: payNote
+    });
+
+    toast.promise(promise, {
+      loading: 'Recording payment...',
+      success: () => {
+        setShowPayModal({show: false}); 
+        setPayAmount(''); 
+        setPayNote(''); 
+        fetchData();
+        return "Payment recorded successfully";
+      },
+      error: (err) => err.response?.data?.message || "Failed to record payment"
+    });
   };
 
   const handlePaySpecificTransaction = async (tx: any) => {
-    if (!confirm(`Mark transaction of Rs. ${tx.totalAmount} as paid?`)) return;
-    try {
-      await api.post(`/customers/pay-transaction/${tx.id}`);
-      alert("Transaction marked as paid!");
-      // Refresh customer history
-      const res = await api.get(`/customers/${showHistoryModal.customer.id}`);
-      setCustomerHistory(res.data);
-      fetchData(); // Refresh main list balance
-    } catch (err) {
-      alert("Failed to process payment");
-    }
+    const promise = api.post(`/customers/pay-transaction/${tx.id}`);
+
+    toast.promise(promise, {
+      loading: 'Processing payment...',
+      success: () => {
+        // Refresh customer history
+        api.get(`/customers/${showHistoryModal.customer.id}`).then(res => setCustomerHistory(res.data));
+        fetchData(); // Refresh main list balance
+        return "Transaction marked as paid!";
+      },
+      error: (err) => err.response?.data?.message || "Failed to process payment"
+    });
   };
 
   const filteredCustomers = customers.filter(c => 

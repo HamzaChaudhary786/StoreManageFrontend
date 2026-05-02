@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { 
   Plus, 
@@ -84,28 +85,41 @@ export default function ProductsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const finalData = { ...formData };
-      
-      if (priceEntryMode === 'single') {
-        finalData.buyPrice = formData.buyPrice * formData.piecesPerUnit;
-      }
+    const finalData = { ...formData };
+    if (priceEntryMode === 'single') {
+      finalData.buyPrice = formData.buyPrice * formData.piecesPerUnit;
+    }
+    if (!isEditing) {
+      finalData.stock = (stockEntry.boxes * formData.piecesPerUnit) + stockEntry.pieces;
+    }
+    
+    const promise = (isEditing && editId) 
+      ? api.put(`/products/${editId}`, finalData)
+      : api.post('/products', finalData);
 
-      if (!isEditing) {
-        // Calculate total pieces from dual entry: (Boxes * PackSize) + Loose Pieces
-        finalData.stock = (stockEntry.boxes * formData.piecesPerUnit) + stockEntry.pieces;
-      }
-      
-      if (isEditing && editId) await api.put(`/products/${editId}`, finalData);
-      else await api.post('/products', finalData);
-      setShowModal(false); fetchData();
-    } catch (err) { alert("Failed to save product"); }
+    toast.promise(promise, {
+      loading: isEditing ? 'Updating product...' : 'Adding product...',
+      success: () => {
+        setShowModal(false); 
+        fetchData();
+        return isEditing ? "Product updated successfully" : "Product added to inventory";
+      },
+      error: (err) => err.response?.data?.message || "Failed to save product"
+    });
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product?")) return;
-    try { await api.delete(`/products/${id}`); fetchData(); }
-    catch (err) { alert("Failed to delete"); }
+    const deletePromise = api.delete(`/products/${id}`);
+
+    toast.promise(deletePromise, {
+      loading: 'Deleting product...',
+      success: () => {
+        fetchData();
+        return "Product deleted successfully";
+      },
+      error: (err) => err.response?.data?.message || "Failed to delete product"
+    });
   };
 
   const filtered = products.filter(p => 

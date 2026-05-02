@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { 
   FileSpreadsheet, 
@@ -80,8 +81,9 @@ export default function ReportsPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      toast.success("Report downloaded successfully");
     } catch (err) {
-      alert("Failed to download report");
+      toast.error("Failed to download report");
     } finally {
       setLoading(null);
     }

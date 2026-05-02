@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { 
   Package, 
@@ -44,9 +45,10 @@ export default function StockPage() {
   const handleQuickUpdate = async (id: string, change: number, reason: string) => {
     try {
       await api.patch(`/products/${id}/stock`, { change, reason });
+      toast.success("Stock updated successfully");
       fetchData();
     } catch (err) {
-      alert("Failed to update stock");
+      toast.error("Failed to update stock");
     }
   };
 

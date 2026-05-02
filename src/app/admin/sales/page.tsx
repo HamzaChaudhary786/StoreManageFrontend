@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
 import {
   Search,
@@ -70,8 +71,8 @@ export default function SalesPage() {
   const total = Math.max(0, subtotal - discount);
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return alert("Cart is empty");
-    if (isUdhar && !selectedCustomerId) return alert("Please select a customer for Udhar");
+    if (cart.length === 0) return toast.error("Cart is empty");
+    if (isUdhar && !selectedCustomerId) return toast.error("Please select a customer for Udhar");
 
     setLoading(true);
     try {
@@ -95,14 +96,14 @@ export default function SalesPage() {
           isUdhar: false
         });
       }
-      alert("Sale recorded successfully! 🎉");
+      toast.success("Sale recorded successfully! 🎉");
       setCart([]);
       setSelectedCustomerId('');
       setIsUdhar(false);
       setDiscount(0);
       fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to record sale");
+      toast.error(err.response?.data?.message || "Failed to record sale");
     } finally {
       setLoading(false);
     }

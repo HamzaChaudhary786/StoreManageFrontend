@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { 
   Plus, 
@@ -45,20 +46,22 @@ export default function CategoriesPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      if (isEditing && editingId) {
-        await api.patch(`/categories/${editingId}`, formData);
-      } else {
-        await api.post('/categories', formData);
-      }
-      setShowModal(false);
-      fetchData();
-      setFormData({ name: '', description: '' });
-      setIsEditing(false);
-      setEditingId(null);
-    } catch (err) {
-      alert(isEditing ? "Failed to update category" : "Failed to create category");
-    }
+    const promise = isEditing && editingId 
+      ? api.patch(`/categories/${editingId}`, formData)
+      : api.post('/categories', formData);
+
+    toast.promise(promise, {
+      loading: isEditing ? 'Updating category...' : 'Creating category...',
+      success: () => {
+        setShowModal(false);
+        fetchData();
+        setFormData({ name: '', description: '' });
+        setIsEditing(false);
+        setEditingId(null);
+        return isEditing ? "Category updated successfully" : "Category created successfully";
+      },
+      error: (err) => err.response?.data?.message || (isEditing ? "Failed to update category" : "Failed to create category")
+    });
   };
 
   const handleEdit = (cat: any) => {
@@ -70,12 +73,16 @@ export default function CategoriesPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this category? Products within it will prevent deletion.")) return;
-    try {
-      await api.delete(`/categories/${id}`);
-      fetchData();
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to delete category");
-    }
+    const deletePromise = api.delete(`/categories/${id}`);
+
+    toast.promise(deletePromise, {
+      loading: 'Deleting category...',
+      success: () => {
+        fetchData();
+        return "Category deleted successfully";
+      },
+      error: (err) => err.response?.data?.message || "Failed to delete category"
+    });
   };
 
   const fetchCategoryProducts = async (cat: any) => {
@@ -119,10 +126,11 @@ export default function CategoriesPage() {
 
     try {
       await api.patch(`/products/${productId}/category`, { categoryId: targetCategoryId });
+      toast.success("Product moved successfully");
       fetchData(); // Refresh counts
       if (selectedCategory) fetchCategoryProducts(selectedCategory); // Refresh list if open
     } catch (err) {
-      alert("Failed to move product");
+      toast.error("Failed to move product");
     }
   };
 
