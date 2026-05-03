@@ -208,7 +208,7 @@ export default function AdminDashboard() {
           <div className="relative overflow-hidden gradient-primary rounded-3xl p-6 glow-primary">
             <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
             <TrendingUp className="w-8 h-8 text-white/30 mb-3" />
-            <h3 className="text-base font-black text-white mb-1">Today's Performance</h3>
+            <h3 className="text-base font-black text-white mb-1">Today&apos;s Performance</h3>
             <p className="text-2xl font-black text-white mb-0.5">Rs. {(stats?.todayProfit || 0).toFixed(0)}</p>
             <p className="text-xs text-white/70 mb-5 font-medium">Net profit today</p>
             {stats?.todayRevenue > 0 && (

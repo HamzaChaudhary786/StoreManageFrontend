@@ -1,0 +1,10 @@
+
+D:\StoreManagement\frontend\src\app\admin\customers\page.tsx
+  794:97   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  794:108  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+D:\StoreManagement\frontend\src\app\admin\page.tsx
+  211:71  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+??? 3 problems (3 errors, 0 warnings)
+

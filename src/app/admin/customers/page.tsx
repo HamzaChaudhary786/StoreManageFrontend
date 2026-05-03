@@ -791,7 +791,7 @@ export default function CustomersPage() {
                         {new Date(log.createdAt).toLocaleDateString('en-PK', { year: 'numeric', month: 'short', day: 'numeric' })}
                         {' · '}{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
-                      {log.note && <p className="text-[11px] text-muted-foreground italic mt-1">"{log.note}"</p>}
+                      {log.note && <p className="text-[11px] text-muted-foreground italic mt-1">&quot;{log.note}&quot;</p>}
                     </div>
                     <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />

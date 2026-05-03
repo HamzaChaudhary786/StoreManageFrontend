@@ -1,0 +1,41 @@
+
+D:\StoreManagement\frontend\src\app\admin\products\page.tsx
+   26:44  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+   27:48  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+   39:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\StoreManagement\frontend\src\app\admin\products\page.tsx:39:7
+  37 |   useEffect(() => {
+  38 |     if (searchParams.get('bulk') === 'true') {
+> 39 |       setShowBulkModal(true);
+     |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  40 |     }
+  41 |   }, [searchParams]);
+  42 |    react-hooks/set-state-in-effect
+   79:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\StoreManagement\frontend\src\app\admin\products\page.tsx:79:21
+  77 |   };
+  78 |
+> 79 |   useEffect(() => { fetchData(); }, []);
+     |                     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  80 |
+  81 |   const openAddModal = () => {
+  82 |     setIsEditing(false); setEditId(null);  react-hooks/set-state-in-effect
+   87:35  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  605:33  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+
+??? 6 problems (6 errors, 0 warnings)
+

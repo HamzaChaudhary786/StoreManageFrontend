@@ -517,6 +517,7 @@ export default function ProductsPage() {
             </form>
           </div>
         </div>
+      )}
       {/* Bulk Upload Modal */}
       {showBulkModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
