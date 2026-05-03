@@ -22,11 +22,41 @@ import {
   Tag
 } from 'lucide-react';
 
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  sku?: string;
+  salePrice: number;
+  stock: number;
+  unit: string;
+  category?: Category;
+}
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  currentBalance: number;
+}
+
+interface CartItem extends Product {
+  quantity: number;
+  mode: 'qty' | 'price';
+  rawQty?: string;
+}
+
+
 export default function SalesPage() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
-  const [cart, setCart] = useState<any[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [isUdhar, setIsUdhar] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,24 +67,26 @@ export default function SalesPage() {
   const [paymentNote, setPaymentNote] = useState("");
 
 
+
   const fetchData = async () => {
     try {
       const [prodRes, custRes] = await Promise.all([
         api.get('/products'),
         api.get('/customers')
       ]);
-      setProducts(prodRes.data);
-      setCustomers(custRes.data);
+      setProducts(prodRes.data as Product[]);
+      setCustomers(custRes.data as Customer[]);
     } catch (err) {
       console.error("Failed to fetch data");
     }
+
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const addToCart = (product: any) => {
+  const addToCart = (product: Product) => {
     const existing = cart.find(item => item.id === product.id);
     if (existing) {
       setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
@@ -62,6 +94,7 @@ export default function SalesPage() {
       setCart([...cart, { ...product, quantity: 1, mode: 'qty' }]);
     }
   };
+
 
   const removeFromCart = (id: string) => {
     setCart(cart.filter(item => item.id !== id));
@@ -682,7 +715,7 @@ export default function SalesPage() {
                 display: 'flex', flexDirection: 'column', gap: '10px',
               }}
             >
-              {cart.length === 0 ? (
+              {cart.length === 0 && !isPaymentOnly ? (
                 <div
                   style={{
                     height: '100%', display: 'flex',
@@ -710,7 +743,9 @@ export default function SalesPage() {
                   </div>
                 </div>
               ) : (
-                cart.map(item => {
+                <>
+                  {cart.map(item => {
+
                   const isWeight = ['kg', 'liter', 'gram', 'bottle', 'litre'].includes(item.unit);
 
                   return (
@@ -853,6 +888,7 @@ export default function SalesPage() {
                                 {item.quantity.toFixed(2)} {item.unit}
                               </span>
                             )}
+                          </div>
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity + (isWeight ? 0.1 : 1))}
                             className="stepper-btn"
@@ -865,14 +901,14 @@ export default function SalesPage() {
                           className="pill-amber"
                           style={{ fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '20px' }}
                         >
-                          {item.quantity} {item.unit}
+                          {item.quantity.toFixed(1)} {item.unit}
                         </span>
                       </div>
                     </div>
                   );
-                })
+                })}
+                </>
               )}
-
               {/* Payment Only Form */}
               {isPaymentOnly && (
                 <div style={{ flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1091,7 +1127,6 @@ export default function SalesPage() {
                   </p>
                 </div>
               </div>
-
               {/* Checkout button */}
               <button
                 disabled={loading || cart.length === 0}
@@ -1116,6 +1151,7 @@ export default function SalesPage() {
                 )}
               </button>
             </div>
+            )}
           </div>
         </div>
       </div>

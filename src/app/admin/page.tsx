@@ -226,9 +226,9 @@ export default function AdminDashboard() {
             <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-4">Quick Actions</h3>
             {[
               { label: 'Add New Product', href: '/admin/products', icon: Package, color: 'text-primary' },
-              { label: 'Record a Sale', href: '/admin/sales', icon: ShoppingCart, color: 'text-emerald-400' },
+              { label: 'Bulk Product Import', href: '/admin/products?bulk=true', icon: Zap, color: 'text-emerald-400' },
+              { label: 'Record a Sale', href: '/admin/sales', icon: ShoppingCart, color: 'text-amber-400' },
               { label: 'Udhar Customers', href: '/admin/customers', icon: Users, color: 'text-rose-400' },
-              { label: 'Update Stock', href: '/admin/stock', icon: AlertTriangle, color: 'text-amber-400' },
             ].map((action) => (
               <Link key={action.href} href={action.href} className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-muted/50 transition-all group">
                 <div className="p-2 rounded-xl bg-muted group-hover:scale-110 transition-transform">

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+
 import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { 
@@ -13,8 +15,12 @@ import {
   BarChart2,
   Tag,
   Filter,
-  ChevronDown
+  ChevronDown,
+  Upload,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
+
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -25,6 +31,18 @@ export default function ProductsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('bulk') === 'true') {
+      setShowBulkModal(true);
+    }
+  }, [searchParams]);
+
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
 
   const [udharForm, setUdharForm] = useState({ 
     items: [{ productId: '', quantity: 1, priceAtTime: 0, unit: 'pcs' }],
@@ -135,13 +153,23 @@ export default function ProductsPage() {
           <h2 className="text-2xl font-black tracking-tight">Inventory Management</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Manage products, pricing, and profit margins.</p>
         </div>
-        <button 
-          onClick={openAddModal}
-          className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm text-white gradient-primary glow-primary hover:opacity-90 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Add Product
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setShowBulkModal(true)}
+            className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm text-muted-foreground bg-card border border-border/50 hover:bg-muted transition-all"
+          >
+            <Upload className="w-4 h-4" />
+            Bulk Import
+          </button>
+          <button 
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm text-white gradient-primary glow-primary hover:opacity-90 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Add Product
+          </button>
+        </div>
+
       </div>
 
       {/* Search & Filter Row */}
@@ -487,6 +515,103 @@ export default function ProductsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      {/* Bulk Upload Modal */}
+      {showBulkModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+          <div className="bg-card border border-border/50 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-border/50 flex justify-between items-center bg-muted/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <FileSpreadsheet className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight syne">Bulk Import</h2>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mt-1">Upload CSV file</p>
+                </div>
+              </div>
+              <button onClick={() => setShowBulkModal(false)} className="p-2 hover:bg-rose-500/10 hover:text-rose-400 rounded-xl transition-all text-muted-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="bg-muted/20 border border-dashed border-border rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-background border border-border flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold">{bulkFile ? bulkFile.name : "Select your CSV file"}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Max size 5MB</p>
+                </div>
+                <input 
+                  type="file" 
+                  accept=".csv"
+                  className="hidden" 
+                  id="csv-upload"
+                  onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
+                />
+                <label 
+                  htmlFor="csv-upload"
+                  className="px-4 py-2 bg-background border border-border rounded-xl text-xs font-bold cursor-pointer hover:bg-muted transition-all"
+                >
+                  {bulkFile ? "Change File" : "Choose File"}
+                </label>
+              </div>
+
+              <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">CSV Format Guide</p>
+                  <button 
+                    onClick={() => {
+                      const csvContent = "Name,SKU,Description,BuyPrice,SalePrice,Stock,Category,Unit,MinStock\nSample Product,SKU123,Product Description,100,150,50,General,pcs,10";
+                      const blob = new Blob([csvContent], { type: 'text/csv' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'sample_products.csv';
+                      a.click();
+                    }}
+                    className="flex items-center gap-1.5 text-[9px] font-bold text-primary hover:underline"
+                  >
+                    <Download className="w-3 h-3" />
+                    Download Sample
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  Required columns: <span className="text-foreground font-medium">Name, BuyPrice, SalePrice</span>. 
+                  Optional: SKU, Description, Stock, Category, Unit, MinStock.
+                </p>
+              </div>
+
+              <button
+                disabled={!bulkFile || isUploading}
+                onClick={async () => {
+                  if (!bulkFile) return;
+                  setIsUploading(true);
+                  const formData = new FormData();
+                  formData.append('file', bulkFile);
+                  
+                  try {
+                    await api.post('/products/bulk-csv-upload', formData, {
+                      headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    toast.success("Products imported successfully!");
+                    setShowBulkModal(false);
+                    setBulkFile(null);
+                    fetchData();
+                  } catch (err: any) {
+                    toast.error(err.response?.data?.message || "Import failed");
+                  } finally {
+                    setIsUploading(false);
+                  }
+                }}
+                className="w-full gradient-primary text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed glow-primary"
+              >
+                {isUploading ? "Importing..." : "Start Import"}
+              </button>
+            </div>
           </div>
         </div>
       )}
