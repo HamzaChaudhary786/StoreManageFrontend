@@ -32,6 +32,10 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [paidAmount, setPaidAmount] = useState(0);
+  const [isPaymentOnly, setIsPaymentOnly] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentNote, setPaymentNote] = useState("");
+
 
   const fetchData = async () => {
     try {
@@ -111,6 +115,30 @@ export default function SalesPage() {
       fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to record sale");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentOnly = async () => {
+    if (!selectedCustomerId) return toast.error("Please select a customer");
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) return toast.error("Please enter a valid amount");
+
+    setLoading(true);
+    try {
+      await api.post('/customers/pay', {
+        customerId: selectedCustomerId,
+        amount: parseFloat(paymentAmount),
+        note: paymentNote || "Direct Udhar Payment"
+      });
+      toast.success("Payment recorded successfully! 💰");
+      setIsPaymentOnly(false);
+      setPaymentAmount("");
+      setPaymentNote("");
+      setSelectedCustomerId("");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to record payment");
     } finally {
       setLoading(false);
     }
@@ -825,7 +853,6 @@ export default function SalesPage() {
                                 {item.quantity.toFixed(2)} {item.unit}
                               </span>
                             )}
-                          </div>
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity + (isWeight ? 0.1 : 1))}
                             className="stepper-btn"
@@ -845,9 +872,72 @@ export default function SalesPage() {
                   );
                 })
               )}
+
+              {/* Payment Only Form */}
+              {isPaymentOnly && (
+                <div style={{ flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h4 className="syne" style={{ color: '#fff', fontSize: '18px', fontWeight: 800 }}>Direct Payment</h4>
+                    <button 
+                      onClick={() => setIsPaymentOnly(false)}
+                      style={{ color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase' }}>Select Customer</label>
+                    <select
+                      className="cust-select"
+                      style={{ width: '100%', padding: '14px', borderRadius: '16px', fontSize: '14px', fontWeight: 600 }}
+                      value={selectedCustomerId}
+                      onChange={(e) => setSelectedCustomerId(e.target.value)}
+                    >
+                      <option value="">Choose a customer...</option>
+                      {customers.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} (Balance: ₨{c.currentBalance})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase' }}>Payment Amount (₨)</label>
+                    <input
+                      type="number"
+                      className="search-bar"
+                      style={{ width: '100%', padding: '14px', borderRadius: '16px', fontSize: '16px', fontWeight: 700 }}
+                      placeholder="Enter amount..."
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase' }}>Note (Optional)</label>
+                    <textarea
+                      className="search-bar"
+                      style={{ width: '100%', padding: '14px', borderRadius: '16px', fontSize: '14px', minHeight: '100px', resize: 'none' }}
+                      placeholder="Add a note..."
+                      value={paymentNote}
+                      onChange={(e) => setPaymentNote(e.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    onClick={handlePaymentOnly}
+                    disabled={loading}
+                    className="btn-rose syne"
+                    style={{ width: '100%', padding: '16px', borderRadius: '18px', fontSize: '15px', fontWeight: 800, marginTop: 'auto' }}
+                  >
+                    {loading ? "Processing..." : "Record Payment ₨" + (paymentAmount || "0")}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Footer — Checkout */}
+            {!isPaymentOnly && (
             <div
               style={{
                 padding: '16px 18px 20px',
