@@ -254,9 +254,34 @@ export default function CustomersPage() {
     });
   };
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search)
-  );
+  const filteredCustomers = customers
+    .filter(c => {
+      if (!search) return true;
+      const searchLower = search.toLowerCase();
+      const nameLower = (c.name || '').toLowerCase();
+      const phoneLower = (c.phone || '').toLowerCase();
+      
+      const words = searchLower.split(/\s+/).filter(w => w.length > 0);
+      return words.every(word => nameLower.includes(word) || phoneLower.includes(word));
+    })
+    .sort((a, b) => {
+      if (!search) return 0;
+      const searchLower = search.toLowerCase();
+      const aName = (a.name || '').toLowerCase();
+      const bName = (b.name || '').toLowerCase();
+      
+      const aExact = aName === searchLower || (a.phone || '') === searchLower;
+      const bExact = bName === searchLower || (b.phone || '') === searchLower;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      
+      const aStarts = aName.startsWith(searchLower) || (a.phone || '').startsWith(searchLower);
+      const bStarts = bName.startsWith(searchLower) || (b.phone || '').startsWith(searchLower);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      
+      return aName.localeCompare(bName);
+    });
 
   const totalOutstanding = customers.reduce((acc, c) => acc + (c.currentBalance || 0), 0);
 
@@ -549,7 +574,35 @@ export default function CustomersPage() {
                         {activePickingIdx === idx && !item.productId && productSearch.length > 0 && (
                           <div className="absolute top-full left-0 w-full mt-2 bg-card border border-border/50 rounded-2xl shadow-2xl z-[110] max-h-[250px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
                             {products
-                              .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.sku?.toLowerCase().includes(productSearch.toLowerCase()))
+                              .filter(p => {
+                                if (!productSearch) return true;
+                                const searchLower = productSearch.toLowerCase();
+                                const nameLower = p.name.toLowerCase();
+                                const skuLower = (p.sku || '').toLowerCase();
+                                
+                                const words = searchLower.split(/\s+/).filter(w => w.length > 0);
+                                return words.every(word => nameLower.includes(word) || skuLower.includes(word));
+                              })
+                              .sort((a, b) => {
+                                if (!productSearch) return 0;
+                                const searchLower = productSearch.toLowerCase();
+                                const aName = a.name.toLowerCase();
+                                const bName = b.name.toLowerCase();
+                                const aSku = (a.sku || '').toLowerCase();
+                                const bSku = (b.sku || '').toLowerCase();
+
+                                const aExact = aName === searchLower || aSku === searchLower;
+                                const bExact = bName === searchLower || bSku === searchLower;
+                                if (aExact && !bExact) return -1;
+                                if (!aExact && bExact) return 1;
+
+                                const aStarts = aName.startsWith(searchLower) || aSku.startsWith(searchLower);
+                                const bStarts = bName.startsWith(searchLower) || bSku.startsWith(searchLower);
+                                if (aStarts && !bStarts) return -1;
+                                if (!aStarts && bStarts) return 1;
+
+                                return aName.localeCompare(bName);
+                              })
                               .map(p => (
                                 <button
                                   key={p.id}

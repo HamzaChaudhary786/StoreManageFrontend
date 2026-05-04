@@ -81,6 +81,7 @@ export default function ProductsPage() {
   const openAddModal = () => {
     setIsEditing(false); setEditId(null);
     setFormData({ name: '', sku: '', description: '', buyPrice: 0, salePrice: 0, stock: 0, minStockLevel: 5, categoryId: '', unit: 'pcs', piecesPerUnit: 1 });
+    setStockEntry({ boxes: 0, pieces: 0 });
     setShowModal(true);
   };
 
@@ -98,6 +99,7 @@ export default function ProductsPage() {
       unit: product.unit || 'pcs',
       piecesPerUnit: product.piecesPerUnit || 1
     });
+    setStockEntry({ boxes: 0, pieces: product.stock });
     setShowModal(true);
   };
 
@@ -107,9 +109,8 @@ export default function ProductsPage() {
     if (priceEntryMode === 'single') {
       finalData.buyPrice = formData.buyPrice * formData.piecesPerUnit;
     }
-    if (!isEditing) {
-      finalData.stock = (stockEntry.boxes * formData.piecesPerUnit) + stockEntry.pieces;
-    }
+    
+    finalData.stock = (stockEntry.boxes * formData.piecesPerUnit) + stockEntry.pieces;
     
     const promise = (isEditing && editId) 
       ? api.put(`/products/${editId}`, finalData)
@@ -140,10 +141,40 @@ export default function ProductsPage() {
     });
   };
 
-  const filtered = products.filter(p => 
-    (p.name.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase())) &&
-    (categoryFilter === '' || p.categoryId === categoryFilter)
-  );
+  const filtered = products
+    .filter(p => categoryFilter === '' || p.categoryId === categoryFilter)
+    .filter(p => {
+      if (!search) return true;
+      const searchLower = search.toLowerCase();
+      const nameLower = p.name.toLowerCase();
+      const skuLower = (p.sku || '').toLowerCase();
+      
+      // Split search into words to allow matching fragments (e.g. "ca dy" for "candy")
+      const words = searchLower.split(/\s+/).filter(w => w.length > 0);
+      return words.every(word => nameLower.includes(word) || skuLower.includes(word));
+    })
+    .sort((a, b) => {
+      if (!search) return 0;
+      const searchLower = search.toLowerCase();
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aSku = (a.sku || '').toLowerCase();
+      const bSku = (b.sku || '').toLowerCase();
+
+      // Priority 1: Exact matches
+      const aExact = aName === searchLower || aSku === searchLower;
+      const bExact = bName === searchLower || bSku === searchLower;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+
+      // Priority 2: Starts with search string
+      const aStarts = aName.startsWith(searchLower) || aSku.startsWith(searchLower);
+      const bStarts = bName.startsWith(searchLower) || bSku.startsWith(searchLower);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+
+      return aName.localeCompare(bName);
+    });
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -443,7 +474,6 @@ export default function ProductsPage() {
                   <BarChart2 className="w-4 h-4" />
                   <span className="text-[10px] font-black uppercase tracking-widest">Inventory Setup</span>
                 </div>
-                {!isEditing && (
                   <div className="bg-muted/20 p-5 rounded-[2rem] border border-border/50 space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       {!['kg', 'liter', 'gram'].includes(formData.unit) ? (
@@ -457,7 +487,7 @@ export default function ProductsPage() {
                           )}
                           <div className={`space-y-1.5 ${priceEntryMode === 'single' ? 'col-span-2' : ''}`}>
                             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                              {priceEntryMode === 'box' ? 'Loose Pieces' : 'Initial Piece Count'}
+                              {priceEntryMode === 'box' ? 'Loose Pieces' : (isEditing ? 'Current Stock Count' : 'Initial Piece Count')}
                             </label>
                             <input type="number" placeholder="0" className="w-full bg-background border border-border/50 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary text-sm font-medium transition-all"
                               value={stockEntry.pieces} onChange={e => setStockEntry({...stockEntry, pieces: parseFloat(e.target.value) || 0})} />
@@ -465,7 +495,7 @@ export default function ProductsPage() {
                         </>
                       ) : (
                         <div className="space-y-1.5 col-span-2">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initial Weight ({formData.unit})</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{isEditing ? 'Current Weight' : 'Initial Weight'} ({formData.unit})</label>
                           <input type="number" step="0.01" placeholder="0.00" className="w-full bg-background border border-border/50 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary text-sm font-medium transition-all"
                             value={stockEntry.pieces} onChange={e => setStockEntry({...stockEntry, pieces: parseFloat(e.target.value) || 0})} />
                         </div>
@@ -478,7 +508,7 @@ export default function ProductsPage() {
                       </div>
                     )}
                   </div>
-                )}
+
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Low Stock Warning at...</label>
                   <input type="number" step="0.01" placeholder="5" className="w-full bg-background border border-border/50 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary text-sm font-medium transition-all"

@@ -19,7 +19,8 @@ import {
   Hash,
   ShoppingBag,
   Sparkles,
-  Tag
+  Tag,
+  X
 } from 'lucide-react';
 
 
@@ -65,6 +66,8 @@ export default function SalesPage() {
   const [isPaymentOnly, setIsPaymentOnly] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentNote, setPaymentNote] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
 
 
@@ -177,10 +180,36 @@ export default function SalesPage() {
     }
   };
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.sku?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = products
+    .filter(p => {
+      if (!search) return true;
+      const searchLower = search.toLowerCase();
+      const nameLower = p.name.toLowerCase();
+      const skuLower = (p.sku || '').toLowerCase();
+      
+      const words = searchLower.split(/\s+/).filter(w => w.length > 0);
+      return words.every(word => nameLower.includes(word) || skuLower.includes(word));
+    })
+    .sort((a, b) => {
+      if (!search) return 0;
+      const searchLower = search.toLowerCase();
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aSku = (a.sku || '').toLowerCase();
+      const bSku = (b.sku || '').toLowerCase();
+
+      const aExact = aName === searchLower || aSku === searchLower;
+      const bExact = bName === searchLower || bSku === searchLower;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+
+      const aStarts = aName.startsWith(searchLower) || aSku.startsWith(searchLower);
+      const bStarts = bName.startsWith(searchLower) || bSku.startsWith(searchLower);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+
+      return aName.localeCompare(bName);
+    });
 
   return (
     <>
@@ -924,17 +953,87 @@ export default function SalesPage() {
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase' }}>Select Customer</label>
-                    <select
-                      className="cust-select"
-                      style={{ width: '100%', padding: '14px', borderRadius: '16px', fontSize: '14px', fontWeight: 600 }}
-                      value={selectedCustomerId}
-                      onChange={(e) => setSelectedCustomerId(e.target.value)}
-                    >
-                      <option value="">Choose a customer...</option>
-                      {customers.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} (Balance: ₨{c.currentBalance})</option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <div className="relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                        <input
+                          type="text"
+                          className="search-bar"
+                          style={{ width: '100%', padding: '14px 14px 14px 44px', borderRadius: '16px', fontSize: '14px', fontWeight: 600 }}
+                          placeholder="Search customer by name or phone..."
+                          value={selectedCustomerId ? (customers.find(c => c.id === selectedCustomerId)?.name || '') : customerSearch}
+                          onChange={(e) => {
+                            setCustomerSearch(e.target.value);
+                            setSelectedCustomerId("");
+                            setShowCustomerDropdown(true);
+                          }}
+                          onFocus={() => setShowCustomerDropdown(true)}
+                        />
+                        {selectedCustomerId && (
+                          <button 
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                            onClick={() => { setSelectedCustomerId(""); setCustomerSearch(""); }}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      {showCustomerDropdown && !selectedCustomerId && (
+                        <div className="absolute top-full left-0 w-full mt-2 glass rounded-2xl shadow-2xl z-[120] max-h-[300px] overflow-y-auto border border-white/10 no-sb">
+                          {customers
+                            .filter(c => {
+                              if (!customerSearch) return true;
+                              const searchLower = customerSearch.toLowerCase();
+                              const nameLower = (c.name || '').toLowerCase();
+                              const phoneLower = (c.phone || '').toLowerCase();
+                              
+                              const words = searchLower.split(/\s+/).filter(w => w.length > 0);
+                              return words.every(word => nameLower.includes(word) || phoneLower.includes(word));
+                            })
+                            .sort((a, b) => {
+                              if (!customerSearch) return 0;
+                              const searchLower = customerSearch.toLowerCase();
+                              const aName = (a.name || '').toLowerCase();
+                              const bName = (b.name || '').toLowerCase();
+                              
+                              const aExact = aName === searchLower || a.phone === searchLower;
+                              const bExact = bName === searchLower || b.phone === searchLower;
+                              if (aExact && !bExact) return -1;
+                              if (!aExact && bExact) return 1;
+                              
+                              const aStarts = aName.startsWith(searchLower) || (a.phone || '').startsWith(searchLower);
+                              const bStarts = bName.startsWith(searchLower) || (b.phone || '').startsWith(searchLower);
+                              if (aStarts && !bStarts) return -1;
+                              if (!aStarts && bStarts) return 1;
+                              
+                              return aName.localeCompare(bName);
+                            })
+                            .map(c => (
+                              <button
+                                key={c.id}
+                                className="w-full text-left p-4 hover:bg-white/5 border-b border-white/5 last:border-0 flex justify-between items-center group transition-colors"
+                                onClick={() => {
+                                  setSelectedCustomerId(c.id);
+                                  setCustomerSearch("");
+                                  setShowCustomerDropdown(false);
+                                }}
+                              >
+                                <div>
+                                  <p className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">{c.name}</p>
+                                  <p className="text-[10px] text-white/40 font-medium">{c.phone}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs font-black text-rose-400">₨{c.currentBalance}</p>
+                                </div>
+                              </button>
+                            ))}
+                          {customers.length === 0 && (
+                            <div className="p-8 text-center text-white/20">No customers found</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1014,17 +1113,84 @@ export default function SalesPage() {
                   <p className="syne" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: '6px' }}>
                     Select Customer
                   </p>
-                  <select
-                    className="cust-select"
-                    style={{ width: '100%', borderRadius: '14px', padding: '11px 14px', fontSize: '13px', fontWeight: 600 }}
-                    value={selectedCustomerId}
-                    onChange={e => setSelectedCustomerId(e.target.value)}
-                  >
-                    <option value="">Choose Customer…</option>
-                    {customers.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                      <input
+                        type="text"
+                        className="search-bar"
+                        style={{ width: '100%', borderRadius: '14px', padding: '11px 11px 11px 40px', fontSize: '13px', fontWeight: 600 }}
+                        placeholder="Search customer..."
+                        value={selectedCustomerId ? (customers.find(c => c.id === selectedCustomerId)?.name || '') : customerSearch}
+                        onChange={(e) => {
+                          setCustomerSearch(e.target.value);
+                          setSelectedCustomerId("");
+                          setShowCustomerDropdown(true);
+                        }}
+                        onFocus={() => setShowCustomerDropdown(true)}
+                      />
+                      {selectedCustomerId && (
+                        <button 
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                          onClick={() => { setSelectedCustomerId(""); setCustomerSearch(""); }}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {showCustomerDropdown && !selectedCustomerId && (
+                      <div className="absolute bottom-full left-0 w-full mb-2 glass rounded-2xl shadow-2xl z-[120] max-h-[250px] overflow-y-auto border border-white/10 no-sb">
+                        {customers
+                          .filter(c => {
+                            if (!customerSearch) return true;
+                            const searchLower = customerSearch.toLowerCase();
+                            const nameLower = (c.name || '').toLowerCase();
+                            const phoneLower = (c.phone || '').toLowerCase();
+                            
+                            const words = searchLower.split(/\s+/).filter(w => w.length > 0);
+                            return words.every(word => nameLower.includes(word) || phoneLower.includes(word));
+                          })
+                          .sort((a, b) => {
+                            if (!customerSearch) return 0;
+                            const searchLower = customerSearch.toLowerCase();
+                            const aName = (a.name || '').toLowerCase();
+                            const bName = (b.name || '').toLowerCase();
+                            
+                            const aExact = aName === searchLower || a.phone === searchLower;
+                            const bExact = bName === searchLower || b.phone === searchLower;
+                            if (aExact && !bExact) return -1;
+                            if (!aExact && bExact) return 1;
+                            
+                            const aStarts = aName.startsWith(searchLower) || (a.phone || '').startsWith(searchLower);
+                            const bStarts = bName.startsWith(searchLower) || (b.phone || '').startsWith(searchLower);
+                            if (aStarts && !bStarts) return -1;
+                            if (!aStarts && bStarts) return 1;
+                            
+                            return aName.localeCompare(bName);
+                          })
+                          .map(c => (
+                            <button
+                              key={c.id}
+                              className="w-full text-left p-3 hover:bg-white/5 border-b border-white/5 last:border-0 flex justify-between items-center group transition-colors"
+                              onClick={() => {
+                                setSelectedCustomerId(c.id);
+                                setCustomerSearch("");
+                                setShowCustomerDropdown(false);
+                              }}
+                            >
+                              <div>
+                                <p className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors">{c.name}</p>
+                                <p className="text-[9px] text-white/40 font-medium">{c.phone}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[10px] font-black text-rose-400">₨{c.currentBalance}</p>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

@@ -144,15 +144,15 @@ export default function AdminDashboard() {
       {/* Secondary stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Products', val: stats?.totalProducts || 0, color: 'text-primary', bg: 'bg-primary/10' },
-          { label: 'Out of Stock', val: stats?.outOfStock || 0, color: 'text-rose-400', bg: 'bg-rose-500/10' },
-          { label: 'Low Stock Alerts', val: stats?.lowStock || 0, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-          { label: 'Udhar Customers', val: stats?.recentActivity?.filter((a: any) => a.type === 'UDHAR').length || '—', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          { label: 'Total Products', val: stats?.totalProducts || 0, color: 'text-primary', bg: 'bg-primary/10', href: '/admin/products' },
+          { label: 'Out of Stock', val: stats?.outOfStock || 0, color: 'text-rose-400', bg: 'bg-rose-500/10', href: '/admin/products/out-of-stock' },
+          { label: 'Low Stock Alerts', val: stats?.lowStock || 0, color: 'text-amber-400', bg: 'bg-amber-500/10', href: '/admin/products/low-stock' },
+          { label: 'Udhar Customers', val: stats?.recentActivity?.filter((a: any) => a.type === 'UDHAR').length || '—', color: 'text-emerald-400', bg: 'bg-emerald-500/10', href: '/admin/customers' },
         ].map((s, i) => (
-          <div key={i} className={`${s.bg} border border-border/30 rounded-2xl p-4`}>
+          <Link key={i} href={s.href} className={`${s.bg} border border-border/30 rounded-2xl p-4 hover:scale-105 transition-all cursor-pointer block`}>
             <p className={`text-xl font-black ${s.color}`}>{s.val}</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">{s.label}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
